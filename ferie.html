@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Ferie - La Casereccia</title>
+
+    <style>
+        body {
+            background-color: #f7d400;
+            font-family: Arial;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            font-size: 18px;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #333;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        table td {
+            padding: 8px;
+        }
+
+        .month {
+            background: white;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .day {
+            padding: 4px;
+            cursor: pointer;
+        }
+
+        .sunday {
+            background: #ff7070;
+            font-weight: bold;
+        }
+
+        .holiday {
+            background: #70a8ff;
+            font-weight: bold;
+        }
+
+        .assigned {
+            background: #00aa55;
+            color: white;
+            font-weight: bold;
+        }
+
+        #popup {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            width: 300px;
+            text-align: center;
+        }
+
+        #popup button {
+            margin-top: 10px;
+            padding: 10px;
+            width: 100%;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Agenda Ferie</h1>
+
+    <!-- Pulsanti MODIFICA e SALVA -->
+    <div class="controls">
+        <button onclick="enableEdit()">MODIFICA</button>
+        <button onclick="saveEdit()">SALVA</button>
+    </div>
+
+    <!-- Tabella dipendenti -->
+    <table id="dipTable">
+        <tr><th>Ore iniziali</th><th>Nome</th><th>Ore residue</th></tr>
+
+        <!-- 8 dipendenti -->
+        <tr><td><input disabled value="0"></td><td><input disabled value="Marco"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Davide"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Paolo"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Carmen"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Daniele"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Laura"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Martina"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled value="Elisa"></td><td class="residuo">0</td></tr>
+
+        <!-- 4 slot vuoti -->
+        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 9"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 10"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 11"></td><td class="residuo">0</td></tr>
+        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 12"></td><td class="residuo">0</td></tr>
+    </table>
+
+    <!-- Selettore anno -->
+    <div style="text-align:center; margin-bottom:20px;">
+        <label style="font-size:20px;">Seleziona anno: </label>
+        <select id="yearSelect" style="font-size:18px; padding:5px;" onchange="generateCalendar()">
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+            <option value="2029">2029</option>
+            <option value="2030">2030</option>
+        </select>
+    </div>
+
+    <div id="calendar"></div>
+
+    <!-- Popup assegnazione ferie -->
+    <div id="popup">
+        <h3>Assegna ferie</h3>
+        <select id="dipSelect"></select>
+        <button onclick="assignFerie()">Conferma</button>
+    </div>
+
+    <script>
+        let selectedDay = null;
+        let editMode = false;
+
+        // ===============================
+        //   ROTAZIONE AUTOMATICA ANNUALE
+        // ===============================
+
+        let ferieStorico = JSON.parse(localStorage.getItem("ferieStorico") || "{}");
+        let ordineDipendenti = JSON.parse(localStorage.getItem("ordineDipendenti") || "{}");
+
+        function getOrdinePrecedente(anno) {
+            const prev = anno - 1;
+            if (!ordineDipendenti[prev]) return null;
+            return ordineDipendenti[prev];
+        }
+
+        function creaRotazione(anno) {
+            const precedente = getOrdinePrecedente(anno);
+            if (!precedente) return null;
+
+            const nuovoOrdine = [...precedente.slice(1), precedente[0]];
+
+            ordineDipendenti[anno] = nuovoOrdine;
+            localStorage.setItem("ordineDipendenti", JSON.stringify(ordineDipendenti));
+
+            return nuovoOrdine;
+        }
+
+        function getOrdineAnno(anno) {
+            if (!ordineDipendenti[anno]) {
+                const precedente = getOrdinePrecedente(anno);
+                if (precedente) return creaRotazione(anno);
+
+                const attuale = [];
+                document.querySelectorAll("#dipTable tr").forEach(row => {
+                    const nome = row.querySelector("td:nth-child(2) input");
+                    if (nome && nome.value.trim() !== "") attuale.push(nome.value);
+                });
+
+                ordineDipendenti[anno] = attuale;
+                localStorage.setItem("ordineDipendenti", JSON.stringify(ordineDipendenti));
+            }
+
+            return ordineDipendenti[anno];
+        }
+
+        function controlloPeriodo(anno, giorno, dipendente) {
+            if (editMode) return false;
+
+            const precedente = anno - 1;
+            if (!ferieStorico[precedente]) return false;
+
+            const ferieAnnoPrec = ferieStorico[precedente];
+
+            if (ferieAnnoPrec[giorno] === dipendente) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function salvaFerie(anno, giorno, dipendente) {
+            if (!ferieStorico[anno]) ferieStorico[anno] = {};
+            ferieStorico[anno][giorno] = dipendente;
+            localStorage.setItem("ferieStorico", JSON.stringify(ferieStorico));
+        }
+
+        // ===============================
+        //   MODIFICA / SALVA
+        // ===============================
+
+        function enableEdit() {
+            editMode = true;
+            document.querySelectorAll("#dipTable input").forEach(i => i.disabled = false);
+            alert("Modalità modifica attivata: puoi cambiare nomi, ore e anche le assegnazioni dei giorni.");
+        }
+
+        function saveEdit() {
+            editMode = false;
+            document.querySelectorAll("#dipTable input").forEach(i => i.disabled = true);
+
+            document.querySelectorAll("#dipTable tr").forEach(row => {
+                const ore = row.querySelector("td input");
+                const residuo = row.querySelector(".residuo");
+                if (ore && residuo) residuo.innerText = ore.value;
+            });
+
+            alert("Dati salvati. Modalità modifica disattivata.");
+        }
+
+        // ===============================
+        //   CALENDARIO
+        // ===============================
+
+        function generateCalendar() {
+            const year = parseInt(document.getElementById("yearSelect").value);
+            const calendarDiv = document.getElementById("calendar");
+            calendarDiv.innerHTML = "";
+
+            const months = [
+                "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+                "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+            ];
+
+            const holidays = {
+                "01-01": "Capodanno",
+                "14-02": "San Valentino",
+                "25-04": "Liberazione",
+                "01-05": "Festa del Lavoro",
+                "02-06": "Festa della Repubblica",
+                "15-08": "Ferragosto",
+                "01-11": "Ognissanti",
+                "25-12": "Natale",
+                "26-12": "Santo Stefano"
+            };
+
+            const easter = getEasterDate(year);
+            const carnevale = new Date(easter);
+            carnevale.setDate(easter.getDate() - 47);
+            holidays[
+                String(carnevale.getDate()).padStart(2, "0") + "-" +
+                String(carnevale.getMonth() + 1).padStart(2, "0")
+            ] = "Carnevale";
+
+            for (let m = 0; m < 12; m++) {
+                const monthDiv = document.createElement("div");
+                monthDiv.className = "month";
+
+                const title = document.createElement("h2");
+                title.innerText = months[m];
+                monthDiv.appendChild(title);
+
+                const daysInMonth = new Date(year, m + 1, 0).getDate();
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const date = new Date(year, m, d);
+                    const dayDiv = document.createElement("div");
+                    dayDiv.className = "day";
+
+                    const dayString = String(d).padStart(2, "0") + "-" + String(m + 1).padStart(2, "0");
+
+                    if (date.getDay() === 0) {
+                        dayDiv.classList.add("sunday");
+                        dayDiv.innerText = d + " — Domenica";
+                    } else if (holidays[dayString]) {
+                        dayDiv.classList.add("holiday");
+                        dayDiv.innerText = d + " — " + holidays[dayString];
+                    } else {
+                        dayDiv.innerText = d;
+                    }
+
+                    dayDiv.onclick = () => openPopup(dayDiv);
+
+                    monthDiv.appendChild(dayDiv);
+                }
+
+                calendarDiv.appendChild(monthDiv);
+            }
+        }
+
+        function openPopup(dayDiv) {
+            selectedDay = dayDiv;
+
+            const dipSelect = document.getElementById("dipSelect");
+            dipSelect.innerHTML = "";
+
+            document.querySelectorAll("#dipTable tr").forEach(row => {
+                const nome = row.querySelector("td:nth-child(2) input");
+                const residuo = row.querySelector(".residuo");
+
+                if (nome && nome.value.trim() !== "") {
+                    const opt = document.createElement("option");
+                    opt.value = nome.value;
+                    opt.innerText = nome.value + " (" + residuo.innerText + " ore)";
+                    dipSelect.appendChild(opt);
+                }
+            });
+
+            document.getElementById("popup").style.display = "block";
+        }
+
+        function assignFerie() {
+            const dip = document.getElementById("dipSelect").value;
+
+            const anno = parseInt(document.getElementById("yearSelect").value);
+            const giorno = selectedDay.innerText.split(" ")[0];
+
+            if (!editMode && controlloPeriodo(anno, giorno, dip)) {
+                alert("Questo dipendente ha già avuto ferie in questo periodo l’anno precedente.");
+                document.getElementById("popup").style.display = "none";
+                return;
+            }
+
+            document.querySelectorAll("#dipTable tr").forEach(row => {
+                const nome = row.querySelector("td:nth-child(2) input");
+                const residuo = row.querySelector(".residuo");
+
+                if (nome && nome.value === dip) {
+                    residuo.innerText = parseInt(residuo.innerText) - 8;
+                }
+            });
+
+            selectedDay.classList.add("assigned");
+            selectedDay.innerText += " — " + dip;
+
+            salvaFerie(anno, giorno, dip);
+
+            document.getElementById("popup").style.display = "none";
+        }
+
+        function getEasterDate(year) {
+            const f = Math.floor,
+                G = year % 19,
+                C = f(year / 100),
+                H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30,
+                I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11)),
+                J = (year + f(year / 4) + I + 2 - C + f(C / 4)) % 7,
+                L = I - J,
+                month = 3 + f((L + 40) / 44),
+                day = L + 28 - 31 * f(month / 4);
+            return new Date(year, month - 1, day);
+        }
+
+        generateCalendar();
+    </script>
+
+</body>
+</html>
