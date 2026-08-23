@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Pasta Fresca La Casereccia - Login</title>
+</head>
+
+<body style="background-color: #f7d400; font-family: Arial; margin: 0;">
+
+    <div style="text-align: center; padding-top: 80px;">
+
+        <!-- TITOLO -->
+        <h1 style="font-size: 40px; margin-bottom: 50px;">
+            Pasta Fresca La Casereccia
+        </h1>
+
+        <!-- CAMPO NOME -->
+        <div style="margin-bottom: 20px;">
+            <input id="username" type="text" placeholder="Nome di accesso"
+                   style="padding: 12px; width: 260px; border-radius: 6px; border: 1px solid #333; font-size: 16px;">
+        </div>
+
+        <!-- CAMPO PASSWORD -->
+        <div style="margin-bottom: 30px;">
+            <input id="password" type="password" placeholder="Password"
+                   style="padding: 12px; width: 260px; border-radius: 6px; border: 1px solid #333; font-size: 16px;">
+        </div>
+
+        <!-- BOTTONE ENTRA -->
+        <button onclick="login()"
+                style="background: #333; color: white; padding: 12px 40px;
+                       border: none; border-radius: 8px; font-size: 18px; cursor: pointer;">
+            ENTRA
+        </button>
+
+        <!-- ERRORE -->
+        <p id="error" style="color: red; margin-top: 20px; font-size: 18px;"></p>
+
+    </div>
+
+    <script>
+        function login() {
+            const user = document.getElementById("username").value;
+            const pass = document.getElementById("password").value;
+
+            // Nome e password che vuoi usare
+            const validUser = "pasta";
+            const validPass = "1234";
+
+            if (user === validUser && pass === validPass) {
+                window.location.href = "menu.html"; // pagina successiva
+            } else {
+                document.getElementById("error").innerText = "Nome o password errati.";
+            }
+        }
+    </script>
+
+</body>
+</html>
+
