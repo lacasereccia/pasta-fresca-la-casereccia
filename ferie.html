@@ -45,10 +45,16 @@
             padding: 8px;
         }
 
+        /* CALENDARIO IN DUE COLONNE */
+        #calendar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
         .month {
             background: white;
             padding: 10px;
-            margin: 15px 0;
             border-radius: 8px;
         }
 
@@ -101,7 +107,6 @@
             background: #aa0000;
         }
 
-        /* BOTTONE TORNA SU */
         #backToTop {
             position: fixed;
             bottom: 20px;
@@ -122,13 +127,11 @@
 
     <h1>Agenda Ferie</h1>
 
-    <!-- Pulsanti MODIFICA e SALVA -->
     <div class="controls">
         <button onclick="enableEdit()">MODIFICA</button>
         <button onclick="saveEdit()">SALVA</button>
     </div>
 
-    <!-- Tabella dipendenti -->
     <table id="dipTable">
         <tr><th>Ore iniziali</th><th>Nome</th><th>Ore residue</th></tr>
 
@@ -147,7 +150,6 @@
         <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 12"></td><td class="residuo">0</td></tr>
     </table>
 
-    <!-- Selettore anno -->
     <div style="text-align:center; margin-bottom:20px;">
         <label style="font-size:20px;">Seleziona anno: </label>
         <select id="yearSelect" style="font-size:18px; padding:5px;" onchange="generateCalendar()">
@@ -161,7 +163,6 @@
 
     <div id="calendar"></div>
 
-    <!-- Popup -->
     <div id="popup">
         <h3>Gestione ferie</h3>
         <select id="dipSelect"></select>
@@ -169,7 +170,6 @@
         <button class="delete" onclick="deleteFerie()">Elimina</button>
     </div>
 
-    <!-- Bottone torna su -->
     <button id="backToTop" onclick="scrollToTop()">Torna su</button>
 
     <script>
@@ -177,64 +177,6 @@
         let editMode = false;
 
         let ferieStorico = JSON.parse(localStorage.getItem("ferieStorico") || "{}");
-        let ordineDipendenti = JSON.parse(localStorage.getItem("ordineDipendenti") || "{}");
-
-        function getOrdinePrecedente(anno) {
-            const prev = anno - 1;
-            if (!ordineDipendenti[prev]) return null;
-            return ordineDipendenti[prev];
-        }
-
-        function creaRotazione(anno) {
-            const precedente = getOrdinePrecedente(anno);
-            if (!precedente) return null;
-
-            const nuovoOrdine = [...precedente.slice(1), precedente[0]];
-
-            ordineDipendenti[anno] = nuovoOrdine;
-            localStorage.setItem("ordineDipendenti", JSON.stringify(ordineDipendenti));
-
-            return nuovoOrdine;
-        }
-
-        function getOrdineAnno(anno) {
-            if (!ordineDipendenti[anno]) {
-                const precedente = getOrdinePrecedente(anno);
-                if (precedente) return creaRotazione(anno);
-
-                const attuale = [];
-                document.querySelectorAll("#dipTable tr").forEach(row => {
-                    const nome = row.querySelector("td:nth-child(2) input");
-                    if (nome && nome.value.trim() !== "") attuale.push(nome.value);
-                });
-
-                ordineDipendenti[anno] = attuale;
-                localStorage.setItem("ordineDipendenti", JSON.stringify(ordineDipendenti));
-            }
-
-            return ordineDipendenti[anno];
-        }
-
-        function controlloPeriodo(anno, giorno, dipendente) {
-            if (editMode) return false;
-
-            const precedente = anno - 1;
-            if (!ferieStorico[precedente]) return false;
-
-            const ferieAnnoPrec = ferieStorico[precedente];
-
-            if (ferieAnnoPrec[giorno] === dipendente) {
-                return true;
-            }
-
-            return false;
-        }
-
-        function salvaFerie(anno, giorno, dipendente) {
-            if (!ferieStorico[anno]) ferieStorico[anno] = {};
-            ferieStorico[anno][giorno] = dipendente;
-            localStorage.setItem("ferieStorico", JSON.stringify(ferieStorico));
-        }
 
         function enableEdit() {
             editMode = true;
@@ -255,14 +197,15 @@
             alert("Dati salvati.");
         }
 
-        /* RESET ORE OGNI VOLTA CHE CAMBIO ANNO */
+        /* RESET ORE INIZIALI E RESIDUE QUANDO CAMBIO ANNO */
         function resetOreAnno() {
             document.querySelectorAll("#dipTable tr").forEach(row => {
                 const oreIniziali = row.querySelector("td input");
                 const residuo = row.querySelector(".residuo");
 
                 if (oreIniziali && residuo) {
-                    residuo.innerText = oreIniziali.value;
+                    oreIniziali.value = 0;
+                    residuo.innerText = 0;
                 }
             });
         }
@@ -270,7 +213,7 @@
         function generateCalendar() {
             const year = parseInt(document.getElementById("yearSelect").value);
 
-            resetOreAnno(); // RESET ORE
+            resetOreAnno();
 
             const calendarDiv = document.getElementById("calendar");
             calendarDiv.innerHTML = "";
@@ -363,12 +306,6 @@
             const anno = parseInt(document.getElementById("yearSelect").value);
             const giorno = selectedDay.innerText.split(" ")[0];
 
-            if (!editMode && controlloPeriodo(anno, giorno, dip)) {
-                alert("Questo dipendente ha già avuto ferie in questo periodo l’anno precedente.");
-                document.getElementById("popup").style.display = "none";
-                return;
-            }
-
             document.querySelectorAll("#dipTable tr").forEach(row => {
                 const nome = row.querySelector("td:nth-child(2) input");
                 const residuo = row.querySelector(".residuo");
@@ -381,7 +318,9 @@
             selectedDay.classList.add("assigned");
             selectedDay.innerText += " — " + dip;
 
-            salvaFerie(anno, giorno, dip);
+            if (!ferieStorico[anno]) ferieStorico[anno] = {};
+            ferieStorico[anno][giorno] = dip;
+            localStorage.setItem("ferieStorico", JSON.stringify(ferieStorico));
 
             document.getElementById("popup").style.display = "none";
         }
