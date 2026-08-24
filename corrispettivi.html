@@ -102,6 +102,10 @@ th, td {
             Totale mese precedente Senigallia:
             <input id="tot-prec-senigallia" value="0" disabled style="width:120px;">
         </div>
+        <div class="tot-prec-box">
+            Totale mese precedente TOTALE (Marotta + Senigallia):
+            <input id="tot-prec-totale" value="0" disabled style="width:120px;">
+        </div>
 
         <button id="modifica-totali">MODIFICA</button>
         <button id="salva-totali">SALVA</button>
@@ -230,6 +234,7 @@ function generaTabelle() {
     caricaMese("senigallia");
     mostraTotalePrecedente();
     caricaTotaliManuali();
+    aggiornaTotaleComplessivo();
 }
 
 function creaRiga(g, classe, sede) {
@@ -245,9 +250,9 @@ function creaRiga(g, classe, sede) {
     const tdTot = document.createElement("td");
     tdTot.textContent = "0";
 
-    tdInc.oninput = () => aggiornaTotaleSede(sede);
-    tdPos.oninput = () => aggiornaTotaleSede(sede);
-    tdSpese.oninput = () => aggiornaTotaleSede(sede);
+    tdInc.oninput = () => { aggiornaTotaleSede(sede); };
+    tdPos.oninput = () => { aggiornaTotaleSede(sede); };
+    tdSpese.oninput = () => { aggiornaTotaleSede(sede); };
 
     tr.appendChild(tdG);
     tr.appendChild(tdInc);
@@ -342,7 +347,7 @@ function aggiornaTotaleSede(sede) {
 }
 
 // =========================
-// TOTALE MESE PRECEDENTE (CALCOLATO)
+// TOTALE MESE PRECEDENTE (CALCOLATO + MANUALE)
 // =========================
 
 function mostraTotalePrecedente() {
@@ -366,7 +371,6 @@ function mostraTotalePrecedente() {
     if (datiMarotta) datiMarotta.forEach(d => totM += parseFloat(d.tot));
     if (datiSenigallia) datiSenigallia.forEach(d => totS += parseFloat(d.tot));
 
-    // Se non ci sono valori manuali salvati, metti questi
     const meseStr = document.getElementById("mese-select").value;
     const annoStr = document.getElementById("anno-select").value;
 
@@ -375,6 +379,14 @@ function mostraTotalePrecedente() {
 
     document.getElementById("tot-prec-marotta").value = salvatoM || totM.toFixed(2);
     document.getElementById("tot-prec-senigallia").value = salvatoS || totS.toFixed(2);
+
+    aggiornaTotaleComplessivo();
+}
+
+function aggiornaTotaleComplessivo() {
+    const m = parseFloat(document.getElementById("tot-prec-marotta").value) || 0;
+    const s = parseFloat(document.getElementById("tot-prec-senigallia").value) || 0;
+    document.getElementById("tot-prec-totale").value = (m + s).toFixed(2);
 }
 
 // =========================
@@ -399,6 +411,8 @@ document.getElementById("salva-totali").addEventListener("click", () => {
     localStorage.setItem(`totPrec-marotta-${anno}-${mese}`, totM);
     localStorage.setItem(`totPrec-senigallia-${anno}-${mese}`, totS);
 
+    aggiornaTotaleComplessivo();
+
     alert("Totali mese precedente salvati.");
 });
 
@@ -411,6 +425,8 @@ function caricaTotaliManuali() {
 
     if (salvatoM) document.getElementById("tot-prec-marotta").value = salvatoM;
     if (salvatoS) document.getElementById("tot-prec-senigallia").value = salvatoS;
+
+    aggiornaTotaleComplessivo();
 }
 
 // =========================
@@ -418,10 +434,7 @@ function caricaTotaliManuali() {
 // =========================
 
 document.getElementById("confronta-periodo-btn").addEventListener("click", () => {
-    const mese = document.getElementById("mese-select").value;
-    const anno = document.getElementById("anno-select").value;
-
-    window.location.href = `confronto.html?mese=${mese}&anno=${anno}`;
+    window.location.href = `confronto.html`;
 });
 
 // =========================
