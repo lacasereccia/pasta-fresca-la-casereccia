@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Corrispetttivi - La Casereccia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root {
+    --ferie: #4cc9f0;
+    --festivo: #f72585;
+    --domenica: #7209b7;
+    --bordo: #3a0ca3;
+    --sfondo: #f8f9fa;
+    --popup: #ffffff;
+    --testo: #222;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--sfondo);
+    color: var(--testo);
+}
+
+h2 {
+    margin: 20px;
+}
+
+#top-controls {
+    padding: 20px;
+    background: white;
+    border-bottom: 3px solid var(--bordo);
+}
+
+select {
+    padding: 10px;
+    margin-right: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border: none;
+    background: var(--bordo);
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--festivo);
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
+
+.table-box {
+    flex: 1;
+    background: white;
+    border: 2px solid var(--bordo);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+.festivo { background: var(--festivo); color: white; }
+.domenica { background: var(--domenica); color: white; }
+
+#popup-grafico {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--popup);
+    padding: 20px;
+    border: 3px solid var(--bordo);
+    border-radius: 10px;
+    display: none;
+    z-index: 9999;
+    width: 80%;
+}
+
+#popup-grafico button {
+    width: 100%;
+    margin-top: 15px;
+}
+
+canvas {
+    width: 100%;
+    height: 300px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="top-controls">
+    <h2>Corrispetttivi</h2>
+
+    <label>Mese:</label>
+    <select id="mese-select"></select>
+
+    <label>Anno:</label>
+    <select id="anno-select"></select>
+
+    <button id="carica-btn">CARICA</button>
+
+    <button id="confronta-periodo-btn">Confronta periodo</button>
+    <button id="confronta-giorno-btn">Confronta giorno</button>
+</div>
+
+<div class="container">
+    <div class="table-box">
+        <h3>Marotta</h3>
+        <table id="tab-marotta">
+            <thead>
+                <tr>
+                    <th>Giorno</th>
+                    <th>Incassi</th>
+                    <th>POS</th>
+                    <th>Spese</th>
+                    <th>Totale cassa</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4">Totale mese</th>
+                    <th id="tot-marotta">0</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="table-box">
+        <h3>Senigallia</h3>
+        <table id="tab-senigallia">
+            <thead>
+                <tr>
+                    <th>Giorno</th>
+                    <th>Incassi</th>
+                    <th>POS</th>
+                    <th>Spese</th>
+                    <th>Totale cassa</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4">Totale mese</th>
+                    <th id="tot-senigallia">0</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- POPUP GRAFICO -->
+<div id="popup-grafico">
+    <h3>Confronto periodo</h3>
+    <canvas id="grafico"></canvas>
+    <button onclick="chiudiGrafico()">Chiudi</button>
+</div>
+
+<script>
+// =========================
+// POPOLAMENTO SELECT MESE/ANNO
+// =========================
+
+const mesi = [
+    "Gennaio","Febbraio","Marzo","Aprile",
+    "Maggio","Giugno","Luglio","Agosto",
+    "Settembre","Ottobre","Novembre","Dicembre"
+];
+
+function initSelect() {
+    const meseSel = document.getElementById("mese-select");
+    const annoSel = document.getElementById("anno-select");
+
+    mesi.forEach((m, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = m;
+        meseSel.appendChild(opt);
+    });
+
+    for (let a = 2020; a <= 2030; a++) {
+        const opt = document.createElement("option");
+        opt.value = a;
+        opt.textContent = a;
+        annoSel.appendChild(opt);
+    }
+}
+
+initSelect();
+
+// =========================
+// FESTE
+// =========================
+
+function isFestivo(m, g) {
+    if (m === 0 && g === 1) return true;
+    if (m === 3 && g === 25) return true;
+    if (m === 4 && g === 1) return true;
+    if (m === 7 && g === 15) return true;
+    if (m === 11 && g === 25) return true;
+    return false;
+}
+
+// =========================
+// GENERA TABELLE
+// =========================
+
+function generaTabelle() {
+    const mese = parseInt(document.getElementById("mese-select").value);
+    const anno = parseInt(document.getElementById("anno-select").value);
+
+    const giorni = new Date(anno, mese + 1, 0).getDate();
+
+    const marottaBody = document.querySelector("#tab-marotta tbody");
+    const senigBody = document.querySelector("#tab-senigallia tbody");
+
+    marottaBody.innerHTML = "";
+    senigBody.innerHTML = "";
+
+    for (let g = 1; g <= giorni; g++) {
+        const data = new Date(anno, mese, g);
+        const day = data.getDay();
+
+        const classe = (day === 0 || isFestivo(mese, g)) ? "festivo" : "";
+
+        marottaBody.appendChild(creaRiga(g, classe, "marotta"));
+        senigBody.appendChild(creaRiga(g, classe, "senigallia"));
+    }
+}
+
+function creaRiga(g, classe, sede) {
+    const tr = document.createElement("tr");
+
+    const tdG = document.createElement("td");
+    tdG.textContent = g;
+    if (classe) tdG.classList.add(classe);
+
+    const tdInc = creaInput();
+    const tdPos = creaInput();
+    const tdSpese = creaInput();
+    const tdTot = document.createElement("td");
+    tdTot.textContent = "0";
+
+    tdInc.oninput = () => aggiornaTotaleSede(sede);
+    tdPos.oninput = () => aggiornaTotaleSede(sede);
+    tdSpese.oninput = () => aggiornaTotaleSede(sede);
+
+    tr.appendChild(tdG);
+    tr.appendChild(tdInc);
+    tr.appendChild(tdPos);
+    tr.appendChild(tdSpese);
+    tr.appendChild(tdTot);
+
+    return tr;
+}
+
+function creaInput() {
+    const td = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.value = "";
+    inp.style.width = "80px";
+    td.appendChild(inp);
+    return td;
+}
+
+// =========================
+// CALCOLI TOTALI
+// =========================
+
+function aggiornaTotaleSede(sede) {
+    const tab = document.querySelector(`#tab-${sede}`);
+    const righe = tab.querySelectorAll("tbody tr");
+
+    let totale = 0;
+
+    righe.forEach(r => {
+        const inc = parseFloat(r.children[1].children[0].value) || 0;
+        const pos = parseFloat(r.children[2].children[0].value) || 0;
+        const spese = parseFloat(r.children[3].children[0].value) || 0;
+
+        const tot = inc - pos - spese;
+        r.children[4].textContent = tot.toFixed(2);
+
+        totale += tot;
+    });
+
+    document.getElementById(`tot-${sede}`).textContent = totale.toFixed(2);
+}
+
+// =========================
+// GRAFICO
+// =========================
+
+function chiudiGrafico() {
+    document.getElementById("popup-grafico").style.display = "none";
+}
+
+document.getElementById("carica-btn").addEventListener("click", generaTabelle);
+
+</script>
+
+</body>
+</html>
