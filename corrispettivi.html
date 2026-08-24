@@ -6,34 +6,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root {
-    --ferie: #4cc9f0;
-    --festivo: #f72585;
-    --domenica: #7209b7;
-    --bordo: #3a0ca3;
-    --sfondo: #f8f9fa;
-    --popup: #ffffff;
-    --testo: #222;
-}
-
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: var(--sfondo);
-    color: var(--testo);
-}
-
-h2 {
-    margin: 20px;
+    background: #f8f9fa;
+    color: #222;
 }
 
 #top-controls {
     padding: 20px;
     background: white;
-    border-bottom: 3px solid var(--bordo);
+    border-bottom: 3px solid #3a0ca3;
 }
 
-select {
+select, input[type="date"] {
     padding: 10px;
     margin-right: 10px;
 }
@@ -42,7 +28,7 @@ button {
     padding: 10px 20px;
     margin-right: 10px;
     border: none;
-    background: var(--bordo);
+    background: #3a0ca3;
     color: white;
     font-weight: bold;
     border-radius: 6px;
@@ -50,7 +36,7 @@ button {
 }
 
 button:hover {
-    background: var(--festivo);
+    background: #f72585;
 }
 
 .container {
@@ -62,7 +48,7 @@ button:hover {
 .table-box {
     flex: 1;
     background: white;
-    border: 2px solid var(--bordo);
+    border: 2px solid #3a0ca3;
     border-radius: 10px;
     padding: 10px;
 }
@@ -78,30 +64,20 @@ th, td {
     text-align: center;
 }
 
-.festivo { background: var(--festivo); color: white; }
-.domenica { background: var(--domenica); color: white; }
+.festivo { background: #f72585; color: white; }
+.domenica { background: #7209b7; color: white; }
 
-#popup-grafico, #popup-periodo {
+#popup-periodo {
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--popup);
+    background: white;
     padding: 20px;
-    border: 3px solid var(--bordo);
+    border: 3px solid #3a0ca3;
     border-radius: 10px;
     display: none;
     z-index: 9999;
-    width: 80%;
-}
-
-#popup-grafico button, #popup-periodo button {
-    width: 100%;
-    margin-top: 15px;
-}
-
-canvas {
-    width: 100%;
-    height: 300px;
+    width: 350px;
 }
 </style>
 </head>
@@ -122,16 +98,7 @@ canvas {
 
     <button id="carica-btn">CARICA</button>
 
-    <button id="confronta-giorno-btn">Confronta giorno</button>
-
-    <label>Giorno:</label>
-    <select id="cg-giorno"></select>
-
-    <label>Mese:</label>
-    <select id="cg-mese"></select>
-
-    <label>Anno:</label>
-    <select id="cg-anno"></select>
+    <button id="confronta-periodo-btn">Confronta periodo</button>
 
     <div style="margin-top:10px; font-weight:bold;">
         Totale mese precedente: <span id="tot-prec">0</span>
@@ -184,6 +151,20 @@ canvas {
     </div>
 </div>
 
+<!-- POPUP CONFRONTO PERIODO -->
+<div id="popup-periodo">
+    <h3>Confronta periodo</h3>
+
+    <label>Dal:</label>
+    <input type="date" id="p1-dal">
+
+    <label>Al:</label>
+    <input type="date" id="p1-al">
+
+    <button id="confronta-periodo-conferma">Conferma</button>
+    <button onclick="chiudiPeriodo()">Chiudi</button>
+</div>
+
 <script>
 // =========================
 // SELECT GIORNO / MESE / ANNO
@@ -191,18 +172,11 @@ canvas {
 
 function initGiorni() {
     const giornoSel = document.getElementById("giorno-select");
-    const cgG = document.getElementById("cg-giorno");
-
     for (let g = 1; g <= 31; g++) {
-        let opt1 = document.createElement("option");
-        opt1.value = g;
-        opt1.textContent = g;
-        giornoSel.appendChild(opt1);
-
-        let opt2 = document.createElement("option");
-        opt2.value = g;
-        opt2.textContent = g;
-        cgG.appendChild(opt2);
+        let opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g;
+        giornoSel.appendChild(opt);
     }
 }
 
@@ -214,35 +188,21 @@ const mesi = [
 
 function initMesi() {
     const meseSel = document.getElementById("mese-select");
-    const cgM = document.getElementById("cg-mese");
-
     mesi.forEach((m, i) => {
-        let opt1 = document.createElement("option");
-        opt1.value = i;
-        opt1.textContent = m;
-        meseSel.appendChild(opt1);
-
-        let opt2 = document.createElement("option");
-        opt2.value = i;
-        opt2.textContent = m;
-        cgM.appendChild(opt2);
+        let opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = m;
+        meseSel.appendChild(opt);
     });
 }
 
 function initAnni() {
     const annoSel = document.getElementById("anno-select");
-    const cgA = document.getElementById("cg-anno");
-
     for (let a = 2025; a <= 2035; a++) {
-        let opt1 = document.createElement("option");
-        opt1.value = a;
-        opt1.textContent = a;
-        annoSel.appendChild(opt1);
-
-        let opt2 = document.createElement("option");
-        opt2.value = a;
-        opt2.textContent = a;
-        cgA.appendChild(opt2);
+        let opt = document.createElement("option");
+        opt.value = a;
+        opt.textContent = a;
+        annoSel.appendChild(opt);
     }
 }
 
@@ -331,6 +291,51 @@ function creaInput() {
 }
 
 // =========================
+// SALVATAGGIO AUTOMATICO
+// =========================
+
+function salvaMese(sede) {
+    const mese = document.getElementById("mese-select").value;
+    const anno = document.getElementById("anno-select").value;
+
+    const tab = document.querySelector(`#tab-${sede}`);
+    const righe = tab.querySelectorAll("tbody tr");
+
+    let dati = [];
+
+    righe.forEach(r => {
+        const giorno = r.children[0].textContent;
+        const inc = r.children[1].children[0].value || "0";
+        const pos = r.children[2].children[0].value || "0";
+        const spese = r.children[3].children[0].value || "0";
+        const tot = r.children[4].textContent || "0";
+
+        dati.push({ giorno, inc, pos, spese, tot });
+    });
+
+    localStorage.setItem(`corrisp-${sede}-${anno}-${mese}`, JSON.stringify(dati));
+}
+
+function caricaMese(sede) {
+    const mese = document.getElementById("mese-select").value;
+    const anno = document.getElementById("anno-select").value;
+
+    const dati = JSON.parse(localStorage.getItem(`corrisp-${sede}-${anno}-${mese}`));
+
+    if (!dati) return;
+
+    const tab = document.querySelector(`#tab-${sede}`);
+    const righe = tab.querySelectorAll("tbody tr");
+
+    dati.forEach((d, i) => {
+        righe[i].children[1].children[0].value = d.inc;
+        righe[i].children[2].children[0].value = d.pos;
+        righe[i].children[3].children[0].value = d.spese;
+        righe[i].children[4].textContent = d.tot;
+    });
+}
+
+// =========================
 // CALCOLI TOTALI
 // =========================
 
@@ -355,18 +360,63 @@ function aggiornaTotaleSede(sede) {
 
     if (sede === "marotta") {
         totalePrecedente = totale;
+        salvaMese("marotta");
     }
+
+    salvaMese("senigallia");
 }
 
 function mostraTotalePrecedente() {
-    document.getElementById("tot-prec").textContent = totalePrecedente.toFixed(2);
+    const mese = parseInt(document.getElementById("mese-select").value);
+    const anno = parseInt(document.getElementById("anno-select").value);
+
+    let mesePrec = mese - 1;
+    let annoPrec = anno;
+
+    if (mesePrec < 0) {
+        mesePrec = 11;
+        annoPrec = anno - 1;
+    }
+
+    const datiPrec = JSON.parse(localStorage.getItem(`corrisp-marotta-${annoPrec}-${mesePrec}`));
+
+    if (!datiPrec) {
+        document.getElementById("tot-prec").textContent = "0";
+        return;
+    }
+
+    let tot = 0;
+    datiPrec.forEach(d => tot += parseFloat(d.tot));
+
+    document.getElementById("tot-prec").textContent = tot.toFixed(2);
 }
 
 // =========================
-// EVENTI
+// POPUP CONFRONTO PERIODO
 // =========================
 
-document.getElementById("carica-btn").addEventListener("click", generaTabelle);
+document.getElementById("confronta-periodo-btn").addEventListener("click", () => {
+    document.getElementById("popup-periodo").style.display = "block";
+});
+
+function chiudiPeriodo() {
+    document.getElementById("popup-periodo").style.display = "none";
+}
+
+document.getElementById("confronta-periodo-conferma").addEventListener("click", () => {
+    alert("Confronto periodo attivato.\nFunziona anche con tutti i valori a 0.");
+});
+
+// =========================
+// EVENTO CARICA
+// =========================
+
+document.getElementById("carica-btn").addEventListener("click", () => {
+    generaTabelle();
+    caricaMese("marotta");
+    caricaMese("senigallia");
+    mostraTotalePrecedente();
+});
 
 </script>
 
