@@ -81,10 +81,9 @@ th, td {
 .festivo { background: var(--festivo); color: white; }
 .domenica { background: var(--domenica); color: white; }
 
-#popup-grafico {
+#popup-grafico, #popup-periodo {
     position: fixed;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     background: var(--popup);
     padding: 20px;
@@ -95,7 +94,7 @@ th, td {
     width: 80%;
 }
 
-#popup-grafico button {
+#popup-grafico button, #popup-periodo button {
     width: 100%;
     margin-top: 15px;
 }
@@ -112,6 +111,9 @@ canvas {
 <div id="top-controls">
     <h2>Corrispetttivi</h2>
 
+    <label>Giorno:</label>
+    <select id="giorno-select"></select>
+
     <label>Mese:</label>
     <select id="mese-select"></select>
 
@@ -120,8 +122,20 @@ canvas {
 
     <button id="carica-btn">CARICA</button>
 
-    <button id="confronta-periodo-btn">Confronta periodo</button>
     <button id="confronta-giorno-btn">Confronta giorno</button>
+
+    <label>Giorno:</label>
+    <select id="cg-giorno"></select>
+
+    <label>Mese:</label>
+    <select id="cg-mese"></select>
+
+    <label>Anno:</label>
+    <select id="cg-anno"></select>
+
+    <div style="margin-top:10px; font-weight:bold;">
+        Totale mese precedente: <span id="tot-prec">0</span>
+    </div>
 </div>
 
 <div class="container">
@@ -170,17 +184,27 @@ canvas {
     </div>
 </div>
 
-<!-- POPUP GRAFICO -->
-<div id="popup-grafico">
-    <h3>Confronto periodo</h3>
-    <canvas id="grafico"></canvas>
-    <button onclick="chiudiGrafico()">Chiudi</button>
-</div>
-
 <script>
 // =========================
-// POPOLAMENTO SELECT MESE/ANNO
+// SELECT GIORNO / MESE / ANNO
 // =========================
+
+function initGiorni() {
+    const giornoSel = document.getElementById("giorno-select");
+    const cgG = document.getElementById("cg-giorno");
+
+    for (let g = 1; g <= 31; g++) {
+        let opt1 = document.createElement("option");
+        opt1.value = g;
+        opt1.textContent = g;
+        giornoSel.appendChild(opt1);
+
+        let opt2 = document.createElement("option");
+        opt2.value = g;
+        opt2.textContent = g;
+        cgG.appendChild(opt2);
+    }
+}
 
 const mesi = [
     "Gennaio","Febbraio","Marzo","Aprile",
@@ -188,26 +212,43 @@ const mesi = [
     "Settembre","Ottobre","Novembre","Dicembre"
 ];
 
-function initSelect() {
+function initMesi() {
     const meseSel = document.getElementById("mese-select");
-    const annoSel = document.getElementById("anno-select");
+    const cgM = document.getElementById("cg-mese");
 
     mesi.forEach((m, i) => {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = m;
-        meseSel.appendChild(opt);
-    });
+        let opt1 = document.createElement("option");
+        opt1.value = i;
+        opt1.textContent = m;
+        meseSel.appendChild(opt1);
 
-    for (let a = 2020; a <= 2030; a++) {
-        const opt = document.createElement("option");
-        opt.value = a;
-        opt.textContent = a;
-        annoSel.appendChild(opt);
+        let opt2 = document.createElement("option");
+        opt2.value = i;
+        opt2.textContent = m;
+        cgM.appendChild(opt2);
+    });
+}
+
+function initAnni() {
+    const annoSel = document.getElementById("anno-select");
+    const cgA = document.getElementById("cg-anno");
+
+    for (let a = 2025; a <= 2035; a++) {
+        let opt1 = document.createElement("option");
+        opt1.value = a;
+        opt1.textContent = a;
+        annoSel.appendChild(opt1);
+
+        let opt2 = document.createElement("option");
+        opt2.value = a;
+        opt2.textContent = a;
+        cgA.appendChild(opt2);
     }
 }
 
-initSelect();
+initGiorni();
+initMesi();
+initAnni();
 
 // =========================
 // FESTE
@@ -225,6 +266,8 @@ function isFestivo(m, g) {
 // =========================
 // GENERA TABELLE
 // =========================
+
+let totalePrecedente = 0;
 
 function generaTabelle() {
     const mese = parseInt(document.getElementById("mese-select").value);
@@ -247,6 +290,8 @@ function generaTabelle() {
         marottaBody.appendChild(creaRiga(g, classe, "marotta"));
         senigBody.appendChild(creaRiga(g, classe, "senigallia"));
     }
+
+    mostraTotalePrecedente();
 }
 
 function creaRiga(g, classe, sede) {
@@ -307,15 +352,19 @@ function aggiornaTotaleSede(sede) {
     });
 
     document.getElementById(`tot-${sede}`).textContent = totale.toFixed(2);
+
+    if (sede === "marotta") {
+        totalePrecedente = totale;
+    }
+}
+
+function mostraTotalePrecedente() {
+    document.getElementById("tot-prec").textContent = totalePrecedente.toFixed(2);
 }
 
 // =========================
-// GRAFICO
+// EVENTI
 // =========================
-
-function chiudiGrafico() {
-    document.getElementById("popup-grafico").style.display = "none";
-}
 
 document.getElementById("carica-btn").addEventListener("click", generaTabelle);
 
