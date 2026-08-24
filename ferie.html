@@ -1,384 +1,500 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>Ferie - La Casereccia</title>
+<meta charset="UTF-8">
+<title>Ferie - La Casereccia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <style>
-        body {
-            background-color: #f7d400;
-            font-family: Arial;
-            margin: 0;
-            padding: 20px;
-        }
+<!-- PALETTE MODERNA -->
+<style>
+:root {
+    --ferie: #4cc9f0;        /* azzurro moderno */
+    --festivo: #f72585;      /* rosa acceso */
+    --bloccato: #b5179e;     /* viola scuro */
+    --domenica: #7209b7;     /* viola */
+    --bordo: #3a0ca3;        /* blu scuro */
+    --sfondo: #f8f9fa;       /* grigio chiaro */
+    --popup: #ffffff;
+    --testo: #222;
+}
 
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+/* RESET */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--sfondo);
+    color: var(--testo);
+}
 
-        .controls {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+/* HEADER DIPENDENTI */
+#dipendenti-container {
+    padding: 20px;
+    background: white;
+    border-bottom: 3px solid var(--bordo);
+}
 
-        .controls button {
-            font-size: 18px;
-            padding: 10px 20px;
-            margin: 5px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            background: #333;
-            color: white;
-        }
+#dipendenti-container h2 {
+    margin: 0 0 10px 0;
+}
 
-        table {
-            width: 100%;
-            background: white;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
+#dipendenti-table {
+    width: 100%;
+    border-collapse: collapse;
+}
 
-        table td {
-            padding: 8px;
-        }
+#dipendenti-table th, #dipendenti-table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
 
-        /* CALENDARIO IN DUE COLONNE */
-        #calendar {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+/* BOTTONI */
+button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border: none;
+    background: var(--bordo);
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+}
 
-        .month {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-        }
+button:hover {
+    background: var(--festivo);
+}
 
-        .day {
-            padding: 4px;
-            cursor: pointer;
-        }
+/* GRIGLIA CALENDARIO 2×6 */
+#calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    padding: 20px;
+}
 
-        .sunday {
-            background: #ff7070;
-            font-weight: bold;
-        }
+.month {
+    background: white;
+    border: 2px solid var(--bordo);
+    border-radius: 10px;
+    padding: 10px;
+}
 
-        .holiday {
-            background: #70a8ff;
-            font-weight: bold;
-        }
+.month h3 {
+    text-align: center;
+    margin-top: 0;
+}
 
-        .assigned {
-            background: #00aa55;
-            color: white;
-            font-weight: bold;
-        }
+/* TABELLA GIORNI */
+.month table {
+    width: 100%;
+    border-collapse: collapse;
+}
 
-        #popup {
-            position: fixed;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%, -30%);
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            display: none;
-            width: 300px;
-            text-align: center;
-        }
+.month th, .month td {
+    padding: 6px;
+    text-align: center;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
 
-        #popup button {
-            margin-top: 10px;
-            padding: 10px;
-            width: 100%;
-            background: #333;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+/* COLORI */
+.festivo { background: var(--festivo); color: white; }
+.domenica { background: var(--domenica); color: white; }
+.bloccato { background: var(--bloccato); color: white; }
+.ferie { background: var(--ferie); color: black; }
 
-        #popup button.delete {
-            background: #aa0000;
-        }
+/* POPUP */
+#popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--popup);
+    padding: 20px;
+    border: 3px solid var(--bordo);
+    border-radius: 10px;
+    display: none;
+    z-index: 9999;
+}
 
-        #backToTop {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #333;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 12px 18px;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
-    </style>
+#popup input, #popup select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+#popup button {
+    width: 100%;
+    margin-top: 15px;
+}
+</style>
 </head>
 
 <body>
 
-    <h1>Agenda Ferie</h1>
-
-    <div class="controls">
-        <button onclick="enableEdit()">MODIFICA</button>
-        <button onclick="saveEdit()">SALVA</button>
-    </div>
-
-    <table id="dipTable">
-        <tr><th>Ore iniziali</th><th>Nome</th><th>Ore residue</th></tr>
-
-        <tr><td><input disabled value="0"></td><td><input disabled value="Marco"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Davide"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Paolo"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Carmen"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Daniele"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Laura"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Martina"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled value="Elisa"></td><td class="residuo">0</td></tr>
-
-        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 9"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 10"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 11"></td><td class="residuo">0</td></tr>
-        <tr><td><input disabled value="0"></td><td><input disabled placeholder="Dipendente 12"></td><td class="residuo">0</td></tr>
+<div id="dipendenti-container">
+    <h2>Dipendenti</h2>
+    <table id="dipendenti-table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Ore iniziali</th>
+                <th>Ore residue</th>
+            </tr>
+        </thead>
+        <tbody id="dipendenti-body">
+            <!-- Riempito via JS -->
+        </tbody>
     </table>
 
-    <div style="text-align:center; margin-bottom:20px;">
-        <label style="font-size:20px;">Seleziona anno: </label>
-        <select id="yearSelect" style="font-size:18px; padding:5px;" onchange="generateCalendar()">
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-            <option value="2028">2028</option>
-            <option value="2029">2029</option>
-            <option value="2030">2030</option>
-        </select>
-    </div>
+    <button id="modifica-btn">MODIFICA</button>
+    <button id="salva-btn">SALVA</button>
+    <button id="aggiorna-btn">AGGIORNA</button>
+</div>
 
-    <div id="calendar"></div>
+<div id="calendar-grid">
+    <!-- I 12 mesi vengono generati via JavaScript -->
+</div>
 
-    <div id="popup">
-        <h3>Gestione ferie</h3>
-        <select id="dipSelect"></select>
-        <button onclick="assignFerie()">Conferma</button>
-        <button class="delete" onclick="deleteFerie()">Elimina</button>
-    </div>
+<!-- POPUP -->
+<div id="popup">
+    <h3>Assegna ferie</h3>
+    <label>Dipendente:</label>
+    <select id="popup-dipendente"></select>
 
-    <button id="backToTop" onclick="scrollToTop()">Torna su</button>
+    <label>Numero giorni consecutivi:</label>
+    <input type="number" id="popup-giorni" min="1">
 
-    <script>
-        let selectedDay = null;
-        let editMode = false;
+    <button id="popup-conferma">Conferma</button>
+    <button id="popup-chiudi">Chiudi</button>
+</div>
+<!-- BLOCCO 2 – JAVASCRIPT COMPLETO (da mettere subito dopo il BLOCCO 1, prima di </body>) -->
+<script>
+// =========================
+// DATI DI BASE
+// =========================
 
-        let ferieStorico = JSON.parse(localStorage.getItem("ferieStorico") || "{}");
+const dipendenti = [
+    { nome: "Marco", oreIniziali: 160, oreResidue: 160 },
+    { nome: "Davide", oreIniziali: 160, oreResidue: 160 },
+    { nome: "Paolo", oreIniziali: 160, oreResidue: 160 },
+    { nome: "Sara", oreIniziali: 160, oreResidue: 160 },
+    { nome: "Luca", oreIniziali: 160, oreResidue: 160 }
+];
 
-        function enableEdit() {
-            editMode = true;
-            document.querySelectorAll("#dipTable input").forEach(i => i.disabled = false);
-            alert("Modalità modifica attivata.");
+let modalitaModifica = false;
+let annoCorrente = 2026; // il primo anno lo gestisci tu manualmente
+
+// struttura: ferie[anno][mese][giorno] = nomeDipendente
+const ferie = {};
+
+const mesi = [
+    "Gennaio","Febbraio","Marzo","Aprile",
+    "Maggio","Giugno","Luglio","Agosto",
+    "Settembre","Ottobre","Novembre","Dicembre"
+];
+
+// =========================
+// INIZIALIZZAZIONE DIPENDENTI
+// =========================
+
+function initDipendenti() {
+    const tbody = document.getElementById("dipendenti-body");
+    tbody.innerHTML = "";
+    dipendenti.forEach(d => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${d.nome}</td>
+            <td>${d.oreIniziali}</td>
+            <td>${d.oreResidue}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    const select = document.getElementById("popup-dipendente");
+    select.innerHTML = "";
+    dipendenti.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d.nome;
+        opt.textContent = d.nome;
+        select.appendChild(opt);
+    });
+}
+
+// =========================
+// FESTE E PERIODI BLOCCATI
+// =========================
+
+function isFestivo(meseIndex, giorno) {
+    // esempio base: 1 gennaio, 25 aprile, 1 maggio, 15 agosto, 25 dicembre
+    const m = meseIndex;
+    const g = giorno;
+    if (m === 0 && g === 1) return true;   // 1 gennaio
+    if (m === 3 && g === 25) return true;  // 25 aprile
+    if (m === 4 && g === 1) return true;   // 1 maggio
+    if (m === 7 && g === 15) return true;  // 15 agosto
+    if (m === 11 && g === 25) return true; // 25 dicembre
+    return false;
+}
+
+function isPeriodoBloccato(meseIndex, giorno) {
+    const m = meseIndex;
+    const g = giorno;
+
+    // APRILE 1–15 bloccato
+    if (m === 3 && g >= 1 && g <= 15) return true;
+
+    // AGOSTO e SETTEMBRE bloccati
+    if (m === 7 || m === 8) return true;
+
+    // DICEMBRE bloccato
+    if (m === 11) return true;
+
+    return false;
+}
+
+// =========================
+// GENERAZIONE CALENDARIO
+// =========================
+
+function generaCalendario(anno) {
+    annoCorrente = anno;
+    const grid = document.getElementById("calendar-grid");
+    grid.innerHTML = "";
+
+    for (let m = 0; m < 12; m++) {
+        const monthDiv = document.createElement("div");
+        monthDiv.className = "month";
+
+        const h3 = document.createElement("h3");
+        h3.textContent = `${mesi[m]} ${anno}`;
+        monthDiv.appendChild(h3);
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const trHead = document.createElement("tr");
+        ["Lu","Ma","Me","Gi","Ve","Sa","Do"].forEach(g => {
+            const th = document.createElement("th");
+            th.textContent = g;
+            trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+
+        const primoGiorno = new Date(anno, m, 1).getDay(); // 0=Dom,1=Lun...
+        const giorniNelMese = new Date(anno, m + 1, 0).getDate();
+
+        let giornoCorrente = 1;
+        let riga = document.createElement("tr");
+
+        // offset iniziale
+        let offset = primoGiorno === 0 ? 6 : primoGiorno - 1;
+        for (let i = 0; i < offset; i++) {
+            const td = document.createElement("td");
+            td.textContent = "";
+            riga.appendChild(td);
         }
 
-        function saveEdit() {
-            editMode = false;
-            document.querySelectorAll("#dipTable input").forEach(i => i.disabled = true);
+        while (giornoCorrente <= giorniNelMese) {
+            if (riga.children.length === 7) {
+                tbody.appendChild(riga);
+                riga = document.createElement("tr");
+            }
 
-            document.querySelectorAll("#dipTable tr").forEach(row => {
-                const ore = row.querySelector("td input");
-                const residuo = row.querySelector(".residuo");
-                if (ore && residuo) residuo.innerText = ore.value;
-            });
+            const td = document.createElement("td");
+            td.textContent = giornoCorrente;
+            td.dataset.mese = m;
+            td.dataset.giorno = giornoCorrente;
 
-            alert("Dati salvati.");
+            const data = new Date(anno, m, giornoCorrente);
+            const day = data.getDay(); // 0=Dom
+
+            if (day === 0) td.classList.add("domenica");
+            if (isFestivo(m, giornoCorrente)) td.classList.add("festivo");
+            if (isPeriodoBloccato(m, giornoCorrente)) td.classList.add("bloccato");
+
+            td.addEventListener("click", () => onDayClick(td));
+
+            riga.appendChild(td);
+            giornoCorrente++;
         }
 
-        /* RESET ORE INIZIALI E RESIDUE QUANDO CAMBIO ANNO */
-        function resetOreAnno() {
-            document.querySelectorAll("#dipTable tr").forEach(row => {
-                const oreIniziali = row.querySelector("td input");
-                const residuo = row.querySelector(".residuo");
-
-                if (oreIniziali && residuo) {
-                    oreIniziali.value = 0;
-                    residuo.innerText = 0;
-                }
-            });
+        if (riga.children.length > 0) {
+            while (riga.children.length < 7) {
+                const td = document.createElement("td");
+                td.textContent = "";
+                riga.appendChild(td);
+            }
+            tbody.appendChild(riga);
         }
 
-        function generateCalendar() {
-            const year = parseInt(document.getElementById("yearSelect").value);
+        table.appendChild(tbody);
+        monthDiv.appendChild(table);
+        grid.appendChild(monthDiv);
+    }
 
-            resetOreAnno();
+    // ricolora eventuali ferie già presenti
+    ricoloraFerie();
+}
 
-            const calendarDiv = document.getElementById("calendar");
-            calendarDiv.innerHTML = "";
+// =========================
+// CLICK SUL GIORNO
+// =========================
 
-            const months = [
-                "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-                "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-            ];
+let giornoSelezionato = null;
 
-            const holidays = {
-                "01-01": "Capodanno",
-                "14-02": "San Valentino",
-                "25-04": "Liberazione",
-                "01-05": "Festa del Lavoro",
-                "02-06": "Festa della Repubblica",
-                "15-08": "Ferragosto",
-                "01-11": "Ognissanti",
-                "25-12": "Natale",
-                "26-12": "Santo Stefano"
-            };
+function onDayClick(td) {
+    const meseIndex = parseInt(td.dataset.mese);
+    const giorno = parseInt(td.dataset.giorno);
 
-            const easter = getEasterDate(year);
-            const carnevale = new Date(easter);
-            carnevale.setDate(easter.getDate() - 47);
-            holidays[
-                String(carnevale.getDate()).padStart(2, "0") + "-" +
-                String(carnevale.getMonth() + 1).padStart(2, "0")
-            ] = "Carnevale";
+    if (!modalitaModifica) {
+        // modalità normale: rispetto regole
+        if (isFestivo(meseIndex, giorno) || isPeriodoBloccato(meseIndex, giorno)) {
+            alert("Periodo bloccato: non è possibile inserire ferie in modalità normale.");
+            return;
+        }
+    }
 
-            for (let m = 0; m < 12; m++) {
-                const monthDiv = document.createElement("div");
-                monthDiv.className = "month";
+    giornoSelezionato = { meseIndex, giorno };
+    apriPopup();
+}
 
-                const title = document.createElement("h2");
-                title.innerText = months[m];
-                monthDiv.appendChild(title);
+// =========================
+// POPUP
+// =========================
 
-                const daysInMonth = new Date(year, m + 1, 0).getDate();
+function apriPopup() {
+    document.getElementById("popup-giorni").value = "";
+    document.getElementById("popup").style.display = "block";
+}
 
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const date = new Date(year, m, d);
-                    const dayDiv = document.createElement("div");
-                    dayDiv.className = "day";
+function chiudiPopup() {
+    document.getElementById("popup").style.display = "none";
+}
 
-                    const dayString = String(d).padStart(2, "0") + "-" + String(m + 1).padStart(2, "0");
+// =========================
+// ASSEGNAZIONE FERIE
+// =========================
 
-                    if (date.getDay() === 0) {
-                        dayDiv.classList.add("sunday");
-                        dayDiv.innerText = d + " — Domenica";
-                    } else if (holidays[dayString]) {
-                        dayDiv.classList.add("holiday");
-                        dayDiv.innerText = d + " — " + holidays[dayString];
-                    } else {
-                        dayDiv.innerText = d;
-                    }
+function assegnaFerie() {
+    if (!giornoSelezionato) return;
 
-                    dayDiv.onclick = () => openPopup(dayDiv);
+    const nomeDip = document.getElementById("popup-dipendente").value;
+    const numGiorni = parseInt(document.getElementById("popup-giorni").value);
 
-                    monthDiv.appendChild(dayDiv);
-                }
+    if (!nomeDip || !numGiorni || numGiorni < 1) {
+        alert("Seleziona un dipendente e un numero di giorni valido.");
+        return;
+    }
 
-                calendarDiv.appendChild(monthDiv);
+    const anno = annoCorrente;
+    const mStart = giornoSelezionato.meseIndex;
+    const gStart = giornoSelezionato.giorno;
+
+    if (!ferie[anno]) ferie[anno] = {};
+    if (!ferie[anno][mStart]) ferie[anno][mStart] = {};
+
+    for (let i = 0; i < numGiorni; i++) {
+        const data = new Date(anno, mStart, gStart + i);
+        const m = data.getMonth();
+        const g = data.getDate();
+
+        if (!modalitaModifica) {
+            if (isFestivo(m, g) || isPeriodoBloccato(m, g)) {
+                // in modalità normale, non assegno su giorni bloccati
+                continue;
             }
         }
 
-        function openPopup(dayDiv) {
-            selectedDay = dayDiv;
+        if (!ferie[anno][m]) ferie[anno][m] = {};
+        ferie[anno][m][g] = nomeDip;
+    }
 
-            const dipSelect = document.getElementById("dipSelect");
-            dipSelect.innerHTML = "";
+    // scala ore (esempio: 8 ore al giorno)
+    const dip = dipendenti.find(d => d.nome === nomeDip);
+    if (dip) {
+        dip.oreResidue -= numGiorni * 8;
+        if (dip.oreResidue < 0) dip.oreResidue = 0;
+    }
 
-            document.querySelectorAll("#dipTable tr").forEach(row => {
-                const nome = row.querySelector("td:nth-child(2) input");
-                const residuo = row.querySelector(".residuo");
+    initDipendenti();
+    ricoloraFerie();
+    chiudiPopup();
+}
 
-                if (nome && nome.value.trim() !== "") {
-                    const opt = document.createElement("option");
-                    opt.value = nome.value;
-                    opt.innerText = nome.value + " (" + residuo.innerText + " ore)";
-                    dipSelect.appendChild(opt);
-                }
-            });
+// =========================
+// RICOLORA FERIE
+// =========================
 
-            document.getElementById("popup").style.display = "block";
+function ricoloraFerie() {
+    const anno = annoCorrente;
+    if (!ferie[anno]) return;
+
+    const celle = document.querySelectorAll(".month td");
+    celle.forEach(td => {
+        const m = parseInt(td.dataset.mese);
+        const g = parseInt(td.dataset.giorno);
+        if (isNaN(m) || isNaN(g)) return;
+
+        if (ferie[anno][m] && ferie[anno][m][g]) {
+            td.classList.add("ferie");
         }
+    });
+}
 
-        function assignFerie() {
-            const dip = document.getElementById("dipSelect").value;
+// =========================
+// MODALITÀ MODIFICA / SALVA
+// =========================
 
-            const anno = parseInt(document.getElementById("yearSelect").value);
-            const giorno = selectedDay.innerText.split(" ")[0];
+document.getElementById("modifica-btn").addEventListener("click", () => {
+    modalitaModifica = true;
+    alert("Modalità MODIFICA attiva: puoi bypassare tutte le regole.");
+});
 
-            document.querySelectorAll("#dipTable tr").forEach(row => {
-                const nome = row.querySelector("td:nth-child(2) input");
-                const residuo = row.querySelector(".residuo");
+document.getElementById("salva-btn").addEventListener("click", () => {
+    modalitaModifica = false;
+    alert("Modifiche salvate. Modalità normale ripristinata.");
+});
 
-                if (nome && nome.value === dip) {
-                    residuo.innerText = parseInt(residuo.innerText) - 8;
-                }
-            });
+// =========================
+// TASTO AGGIORNA (ROTTAZIONE ANNUALE)
+// =========================
 
-            selectedDay.classList.add("assigned");
-            selectedDay.innerText += " — " + dip;
+document.getElementById("aggiorna-btn").addEventListener("click", () => {
+    if (annoCorrente === 2026) {
+        alert("Per il 2026 le ferie sono gestite manualmente. Cambia anno per usare AGGIORNA.");
+        return;
+    }
 
-            if (!ferieStorico[anno]) ferieStorico[anno] = {};
-            ferieStorico[anno][giorno] = dip;
-            localStorage.setItem("ferieStorico", JSON.stringify(ferieStorico));
+    // rotazione dipendenti: sposta il primo in fondo
+    const primo = dipendenti.shift();
+    dipendenti.push(primo);
 
-            document.getElementById("popup").style.display = "none";
-        }
+    // qui potresti applicare automaticamente le regole annuali
+    // (per ora lasciamo solo la rotazione, le regole automatiche
+    // possono essere aggiunte in un secondo step se vuoi vederle
+    // una per una)
 
-        function deleteFerie() {
-            const anno = parseInt(document.getElementById("yearSelect").value);
-            const giorno = selectedDay.innerText.split(" ")[0];
+    initDipendenti();
+    generaCalendario(annoCorrente);
+    alert("Rotazione dipendenti applicata per l'anno " + annoCorrente);
+});
 
-            let dipendenteAssegnato = null;
-            if (ferieStorico[anno] && ferieStorico[anno][giorno]) {
-                dipendenteAssegnato = ferieStorico[anno][giorno];
-            }
+// =========================
+// POPUP BOTTONI
+// =========================
 
-            if (!dipendenteAssegnato) {
-                document.getElementById("popup").style.display = "none";
-                return;
-            }
+document.getElementById("popup-conferma").addEventListener("click", assegnaFerie);
+document.getElementById("popup-chiudi").addEventListener("click", chiudiPopup);
 
-            document.querySelectorAll("#dipTable tr").forEach(row => {
-                const nome = row.querySelector("td:nth-child(2) input");
-                const residuo = row.querySelector(".residuo");
+// =========================
+// AVVIO
+// =========================
 
-                if (nome && nome.value === dipendenteAssegnato) {
-                    residuo.innerText = parseInt(residuo.innerText) + 8;
-                }
-            });
-
-            selectedDay.classList.remove("assigned");
-            selectedDay.innerText = selectedDay.innerText.split("—")[0].trim();
-
-            delete ferieStorico[anno][giorno];
-            localStorage.setItem("ferieStorico", JSON.stringify(ferieStorico));
-
-            document.getElementById("popup").style.display = "none";
-        }
-
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth"
-            });
-        }
-
-        function getEasterDate(year) {
-            const f = Math.floor,
-                G = year % 19,
-                C = f(year / 100),
-                H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30,
-                I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11)),
-                J = (year + f(year / 4) + I + 2 - C + f(C / 4)) % 7,
-                L = I - J,
-                month = 3 + f((L + 40) / 44),
-                day = L + 28 - 31 * f(month / 4);
-            return new Date(year, month - 1, day);
-        }
-
-        generateCalendar();
-    </script>
+initDipendenti();
+generaCalendario(annoCorrente);
+</script>
 
 </body>
 </html>
