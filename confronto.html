@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Confronto Periodo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f8f9fa;
+    padding: 20px;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+.box {
+    background: white;
+    padding: 20px;
+    border: 2px solid #3a0ca3;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Confronto periodi</h2>
+
+<div class="box">
+    <h3>Seleziona i periodi da confrontare</h3>
+
+    <div>
+        <strong>Periodo 1:</strong><br>
+        Mese:
+        <select id="mese1"></select>
+        Anno:
+        <select id="anno1"></select>
+    </div>
+
+    <div style="margin-top:10px;">
+        <strong>Periodo 2:</strong><br>
+        Mese:
+        <select id="mese2"></select>
+        Anno:
+        <select id="anno2"></select>
+    </div>
+
+    <button id="conferma">Conferma confronto</button>
+</div>
+
+<div class="box" id="risultati" style="display:none;">
+    <h3>Riepilogo confronto</h3>
+
+    <div id="tabelle"></div>
+
+    <h3>Grafico incassi (Marotta vs Senigallia)</h3>
+    <canvas id="grafico"></canvas>
+</div>
+
+<script>
+// =========================
+// INIT SELECT
+// =========================
+
+const mesiNomi = [
+    "Gennaio","Febbraio","Marzo","Aprile",
+    "Maggio","Giugno","Luglio","Agosto",
+    "Settembre","Ottobre","Novembre","Dicembre"
+];
+
+function initSelectConfronto() {
+    const m1 = document.getElementById("mese1");
+    const m2 = document.getElementById("mese2");
+    const a1 = document.getElementById("anno1");
+    const a2 = document.getElementById("anno2");
+
+    mesiNomi.forEach((m, i) => {
+        let o1 = document.createElement("option");
+        o1.value = i;
+        o1.textContent = m;
+        m1.appendChild(o1);
+
+        let o2 = document.createElement("option");
+        o2.value = i;
+        o2.textContent = m;
+        m2.appendChild(o2);
+    });
+
+    for (let a = 2025; a <= 2035; a++) {
+        let o1 = document.createElement("option");
+        o1.value = a;
+        o1.textContent = a;
+        a1.appendChild(o1);
+
+        let o2 = document.createElement("option");
+        o2.value = a;
+        o2.textContent = a;
+        a2.appendChild(o2);
+    }
+}
+initSelectConfronto();
+
+// =========================
+// CARICA DATI PER PERIODO
+// =========================
+
+function caricaPeriodo(sede, anno, mese) {
+    const dati = JSON.parse(localStorage.getItem(`corrisp-${sede}-${anno}-${mese}`));
+    if (!dati) return {
+        incassi: 0,
+        pos: 0,
+        spese: 0,
+        cassa: 0,
+        giornalieri: []
+    };
+
+    let incassi = 0;
+    let pos = 0;
+    let spese = 0;
+    let cassa = 0;
+    let giornalieri = [];
+
+    dati.forEach(d => {
+        const i = parseFloat(d.inc) || 0;
+        const p = parseFloat(d.pos) || 0;
+        const s = parseFloat(d.spese) || 0;
+        const t = parseFloat(d.tot) || 0;
+
+        incassi += i;
+        pos += p;
+        spese += s;
+        cassa += t;
+
+        giornalieri.push(i);
+    });
+
+    return { incassi, pos, spese, cassa, giornalieri };
+}
+
+// =========================
+// DIFFERENZE
+// =========================
+
+function diffValorePerc(v1, v2) {
+    const diff = v2 - v1;
+    const perc = v1 === 0 ? 0 : (diff / v1) * 100;
+    return {
+        diff: diff.toFixed(2),
+        perc: perc.toFixed(2)
+    };
+}
+
+// =========================
+// CONFERMA CONFRONTO
+// =========================
+
+document.getElementById("conferma").addEventListener("click", () => {
+    const mese1 = document.getElementById("mese1").value;
+    const anno1 = document.getElementById("anno1").value;
+    const mese2 = document.getElementById("mese2").value;
+    const anno2 = document.getElementById("anno2").value;
+
+    const p1Marotta = caricaPeriodo("marotta", anno1, mese1);
+    const p1Senigallia = caricaPeriodo("senigallia", anno1, mese1);
+
+    const p2Marotta = caricaPeriodo("marotta", anno2, mese2);
+    const p2Senigallia = caricaPeriodo("senigallia", anno2, mese2);
+
+    const tabelleDiv = document.getElementById("tabelle");
+    tabelleDiv.innerHTML = "";
+
+    const titolo1 = `${mesiNomi[mese1]} ${anno1}`;
+    const titolo2 = `${mesiNomi[mese2]} ${anno2}`;
+
+    const diffIncassi = diffValorePerc(p1Marotta.incassi + p1Senigallia.incassi,
+                                       p2Marotta.incassi + p2Senigallia.incassi);
+    const diffPos = diffValorePerc(p1Marotta.pos + p1Senigallia.pos,
+                                   p2Marotta.pos + p2Senigallia.pos);
+    const diffSpese = diffValorePerc(p1Marotta.spese + p1Senigallia.spese,
+                                     p2Marotta.spese + p2Senigallia.spese);
+    const diffCassa = diffValorePerc(p1Marotta.cassa + p1Senigallia.cassa,
+                                     p2Marotta.cassa + p2Senigallia.cassa);
+
+    tabelleDiv.innerHTML = `
+        <h4>Periodo 1: ${titolo1}</h4>
+        <table>
+            <tr><th></th><th>Marotta</th><th>Senigallia</th><th>Totale</th></tr>
+            <tr><td>Incassi</td><td>${p1Marotta.incassi.toFixed(2)}</td><td>${p1Senigallia.incassi.toFixed(2)}</td><td>${(p1Marotta.incassi + p1Senigallia.incassi).toFixed(2)}</td></tr>
+            <tr><td>POS</td><td>${p1Marotta.pos.toFixed(2)}</td><td>${p1Senigallia.pos.toFixed(2)}</td><td>${(p1Marotta.pos + p1Senigallia.pos).toFixed(2)}</td></tr>
+            <tr><td>Spese</td><td>${p1Marotta.spese.toFixed(2)}</td><td>${p1Senigallia.spese.toFixed(2)}</td><td>${(p1Marotta.spese + p1Senigallia.spese).toFixed(2)}</td></tr>
+            <tr><td>Totale cassa</td><td>${p1Marotta.cassa.toFixed(2)}</td><td>${p1Senigallia.cassa.toFixed(2)}</td><td>${(p1Marotta.cassa + p1Senigallia.cassa).toFixed(2)}</td></tr>
+        </table>
+
+        <h4>Periodo 2: ${titolo2}</h4>
+        <table>
+            <tr><th></th><th>Marotta</th><th>Senigallia</th><th>Totale</th></tr>
+            <tr><td>Incassi</td><td>${p2Marotta.incassi.toFixed(2)}</td><td>${p2Senigallia.incassi.toFixed(2)}</td><td>${(p2Marotta.incassi + p2Senigallia.incassi).toFixed(2)}</td></tr>
+            <tr><td>POS</td><td>${p2Marotta.pos.toFixed(2)}</td><td>${p2Senigallia.pos.toFixed(2)}</td><td>${(p2Marotta.pos + p2Senigallia.pos).toFixed(2)}</td></tr>
+            <tr><td>Spese</td><td>${p2Marotta.spese.toFixed(2)}</td><td>${p2Senigallia.spese.toFixed(2)}</td><td>${(p2Marotta.spese + p2Senigallia.spese).toFixed(2)}</td></tr>
+            <tr><td>Totale cassa</td><td>${p2Marotta.cassa.toFixed(2)}</td><td>${p2Senigallia.cassa.toFixed(2)}</td><td>${(p2Marotta.cassa + p2Senigallia.cassa).toFixed(2)}</td></tr>
+        </table>
+
+        <h4>Differenze (Periodo 2 vs Periodo 1)</h4>
+        <table>
+            <tr><th></th><th>Differenza</th><th>%</th></tr>
+            <tr><td>Incassi totali</td><td>${diffIncassi.diff}</td><td>${diffIncassi.perc}%</td></tr>
+            <tr><td>POS totali</td><td>${diffPos.diff}</td><td>${diffPos.perc}%</td></tr>
+            <tr><td>Spese totali</td><td>${diffSpese.diff}</td><td>${diffSpese.perc}%</td></tr>
+            <tr><td>Totale cassa</td><td>${diffCassa.diff}</td><td>${diffCassa.perc}%</td></tr>
+        </table>
+    `;
+
+    document.getElementById("risultati").style.display = "block";
+
+    const ctx = document.getElementById("grafico");
+
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: p1Marotta.giornalieri.map((_, i) => i + 1),
+            datasets: [
+                {
+                    label: `Marotta incassi ${titolo1}`,
+                    data: p1Marotta.giornalieri,
+                    borderColor: "#3a0ca3",
+                    fill: false
+                },
+                {
+                    label: `Senigallia incassi ${titolo1}`,
+                    data: p1Senigallia.giornalieri,
+                    borderColor: "#f72585",
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Incassi giornalieri - ${titolo1}`
+                }
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
