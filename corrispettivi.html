@@ -232,7 +232,7 @@ function generaTabelle() {
 
     caricaMese("marotta");
     caricaMese("senigallia");
-    aggiornaTotalePrecedente();
+    caricaFondoCumulativo();
 }
 
 // =========================
@@ -347,35 +347,46 @@ function aggiornaTotaleSede(sede) {
 
     salvaMese(sede);
 
-    aggiornaTotalePrecedente();
+    aggiornaFondoCumulativo();
 }
 
 // =========================
-// TOTALE MESE PRECEDENTE CUMULATIVO
+// FONDO CUMULATIVO (UNICO PER TUTTO L’ANNO)
 // =========================
 
-function aggiornaTotalePrecedente() {
-    const mese = parseInt(document.getElementById("mese-select").value);
-    const anno = parseInt(document.getElementById("anno-select").value);
+function aggiornaFondoCumulativo() {
+    const anno = document.getElementById("anno-select").value;
 
-    let totPrecMarotta = 0;
-    let totPrecSenigallia = 0;
+    let fondoM = 0;
+    let fondoS = 0;
 
-    for (let m = 0; m < mese; m++) {
+    for (let m = 0; m < 12; m++) {
         const datiM = JSON.parse(localStorage.getItem(`corrisp-marotta-${anno}-${m}`));
         const datiS = JSON.parse(localStorage.getItem(`corrisp-senigallia-${anno}-${m}`));
 
-        if (datiM) datiM.forEach(d => totPrecMarotta += parseFloat(d.tot));
-        if (datiS) datiS.forEach(d => totPrecSenigallia += parseFloat(d.tot));
+        if (datiM) datiM.forEach(d => fondoM += parseFloat(d.tot));
+        if (datiS) datiS.forEach(d => fondoS += parseFloat(d.tot));
     }
 
-    document.getElementById("tot-prec-marotta").value = totPrecMarotta.toFixed(2);
-    document.getElementById("tot-prec-senigallia").value = totPrecSenigallia.toFixed(2);
-    document.getElementById("tot-prec-totale").value = (totPrecMarotta + totPrecSenigallia).toFixed(2);
+    localStorage.setItem(`fondo-marotta-${anno}`, fondoM);
+    localStorage.setItem(`fondo-senigallia-${anno}`, fondoS);
+
+    caricaFondoCumulativo();
+}
+
+function caricaFondoCumulativo() {
+    const anno = document.getElementById("anno-select").value;
+
+    const fondoM = parseFloat(localStorage.getItem(`fondo-marotta-${anno}`)) || 0;
+    const fondoS = parseFloat(localStorage.getItem(`fondo-senigallia-${anno}`)) || 0;
+
+    document.getElementById("tot-prec-marotta").value = fondoM.toFixed(2);
+    document.getElementById("tot-prec-senigallia").value = fondoS.toFixed(2);
+    document.getElementById("tot-prec-totale").value = (fondoM + fondoS).toFixed(2);
 }
 
 // =========================
-// MODIFICA / SALVA TOTALI
+// MODIFICA / SALVA TOTALI MANUALI
 // =========================
 
 document.getElementById("modifica-totali").addEventListener("click", () => {
@@ -387,7 +398,17 @@ document.getElementById("salva-totali").addEventListener("click", () => {
     document.getElementById("tot-prec-marotta").disabled = true;
     document.getElementById("tot-prec-senigallia").disabled = true;
 
-    alert("Totali mese precedente salvati manualmente.");
+    const anno = document.getElementById("anno-select").value;
+
+    const nuovoM = parseFloat(document.getElementById("tot-prec-marotta").value) || 0;
+    const nuovoS = parseFloat(document.getElementById("tot-prec-senigallia").value) || 0;
+
+    localStorage.setItem(`fondo-marotta-${anno}`, nuovoM);
+    localStorage.setItem(`fondo-senigallia-${anno}`, nuovoS);
+
+    document.getElementById("tot-prec-totale").value = (nuovoM + nuovoS).toFixed(2);
+
+    alert("Totale mese precedente aggiornato correttamente.");
 });
 
 // =========================
@@ -403,6 +424,9 @@ document.getElementById("confronta-periodo-btn").addEventListener("click", () =>
 // =========================
 
 document.getElementById("carica-btn").addEventListener("click", generaTabelle);
+
+document.getElementById("mese-select").addEventListener("change", caricaFondoCumulativo);
+document.getElementById("anno-select").addEventListener("change", caricaFondoCumulativo);
 
 </script>
 
