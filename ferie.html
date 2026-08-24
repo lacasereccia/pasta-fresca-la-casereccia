@@ -65,9 +65,9 @@ input, select {
 /* CALENDARIO */
 #calendari {
     display: grid;
-    grid-template-columns: repeat(4, 260px);
+    grid-template-columns: repeat(4, 320px); /* 🔥 più largo */
     justify-content: center;
-    gap: 30px;
+    gap: 40px; /* 🔥 più spazio tra i mesi */
     margin-top: 20px;
 }
 
@@ -98,11 +98,23 @@ input, select {
     font-size: 13px;
 }
 
+/* 🔥 CELLE GIORNI MIGLIORATE */
 .mese-box td {
-    padding: 8px;
+    padding: 4px;
     border: 1px solid #ddd;
     font-size: 13px;
     cursor: pointer;
+
+    width: 48px;       /* 🔥 più largo */
+    height: 70px;      /* 🔥 più alto */
+    max-width: 48px;
+    max-height: 70px;
+
+    overflow-y: auto;  /* 🔥 scroll interno */
+    overflow-x: hidden;
+
+    vertical-align: top;
+    text-align: center;
 }
 
 /* Domenica */
@@ -131,11 +143,13 @@ input, select {
     font-size: 13px;
 }
 
+/* 🔥 Nomi più compatti */
 .nome-ferie {
     display: block;
-    font-size: 11px;
-    color: #3a0ca3;
-    margin-top: 2px;
+    font-size: 9px;
+    line-height: 9px;
+    word-wrap: break-word;
+    white-space: normal;
 }
 
 /* POPUP */
