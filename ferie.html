@@ -65,9 +65,9 @@ input, select {
 /* CALENDARIO */
 #calendari {
     display: grid;
-    grid-template-columns: repeat(4, 320px); /* 🔥 più largo */
+    grid-template-columns: repeat(4, 320px);
     justify-content: center;
-    gap: 40px; /* 🔥 più spazio tra i mesi */
+    gap: 40px;
     margin-top: 20px;
 }
 
@@ -86,9 +86,11 @@ input, select {
     font-size: 18px;
 }
 
+/* 🔥 BLOCCA LA TABELLA */
 .mese-box table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed; /* 🔥 BLOCCA LE COLONNE */
 }
 
 .mese-box th {
@@ -98,15 +100,15 @@ input, select {
     font-size: 13px;
 }
 
-/* 🔥 CELLE GIORNI MIGLIORATE */
+/* 🔥 CELLE GIORNI BLOCCATE */
 .mese-box td {
     padding: 4px;
     border: 1px solid #ddd;
     font-size: 13px;
     cursor: pointer;
 
-    width: 48px;       /* 🔥 più largo */
-    height: 70px;      /* 🔥 più alto */
+    width: 48px;       /* 🔥 larghezza fissa */
+    height: 70px;      /* 🔥 altezza fissa */
     max-width: 48px;
     max-height: 70px;
 
@@ -143,7 +145,7 @@ input, select {
     font-size: 13px;
 }
 
-/* 🔥 Nomi più compatti */
+/* 🔥 Nomi compatti */
 .nome-ferie {
     display: block;
     font-size: 9px;
