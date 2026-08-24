@@ -14,6 +14,7 @@ body {
     color: #333;
 }
 
+/* TITOLI */
 h2 {
     margin-bottom: 20px;
     color: #3a0ca3;
@@ -34,6 +35,7 @@ button:hover {
     background: #f72585;
 }
 
+/* TABELLA DIPENDENTI */
 table {
     border-collapse: collapse;
     width: 100%;
@@ -55,31 +57,73 @@ td {
     text-align: center;
 }
 
-td.ferie {
-    background: #ffb3b3;
-    font-weight: bold;
-    border-radius: 4px;
-}
-
+/* CALENDARIO CENTRATO */
 #calendari {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 25px;
+    grid-template-columns: repeat(4, 260px); /* 4 mesi fissi */
+    justify-content: center; /* CENTRA TUTTO */
+    gap: 30px;
+    margin-top: 20px;
 }
 
+/* BOX MESE */
 .mese-box {
     background: white;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 12px;
     border: 2px solid #3a0ca3;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
 .mese-box h3 {
     text-align: center;
-    margin-top: 0;
+    margin: 0 0 10px 0;
     color: #3a0ca3;
+    font-size: 20px;
 }
 
+/* TABELLA GIORNI */
+.mese-box table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mese-box th {
+    background: #3a0ca3;
+    color: white;
+    padding: 6px;
+    font-size: 14px;
+}
+
+.mese-box td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+/* Domenica */
+.mese-box td.dom {
+    background: #ffe0e0;
+    font-weight: bold;
+}
+
+/* Ferie */
+.mese-box td.ferie {
+    background: #ff9aa2;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+/* Nome del dipendente sotto il numero */
+.nome-ferie {
+    display: block;
+    font-size: 11px;
+    color: #3a0ca3;
+    margin-top: 2px;
+}
+
+/* POPUP */
 #popup {
     position: fixed;
     top: 50%;
@@ -249,9 +293,14 @@ function generaCalendario() {
         let box = document.createElement("div");
         box.className = "mese-box";
 
-        box.innerHTML = `<h3>${meseNome(mese)}</h3><table><tr>
-            <th>Lu</th><th>Ma</th><th>Me</th><th>Gi</th><th>Ve</th><th>Sa</th><th>Do</th>
-        </tr><tr>`;
+        box.innerHTML = `
+            <h3>${meseNome(mese)}</h3>
+            <table>
+                <tr>
+                    <th>Lu</th><th>Ma</th><th>Me</th><th>Gi</th><th>Ve</th><th>Sa</th><th>Do</th>
+                </tr>
+                <tr>
+        `;
 
         let firstDay = new Date(anno, mese, 1).getDay();
         if (firstDay === 0) firstDay = 7;
@@ -259,8 +308,18 @@ function generaCalendario() {
         for (let i = 1; i < firstDay; i++) box.innerHTML += "<td></td>";
 
         for (let g = 1; g <= giorni; g++) {
-            box.innerHTML += `<td class="giorno" data-m="${mese}" data-g="${g}">${g}</td>`;
-            if (new Date(anno, mese, g).getDay() === 0) box.innerHTML += "</tr><tr>";
+            let giornoSettimana = new Date(anno, mese, g).getDay();
+            let classe = "";
+
+            if (giornoSettimana === 0) classe = "dom";
+
+            box.innerHTML += `
+                <td class="giorno ${classe}" data-m="${mese}" data-g="${g}">
+                    <span class="num">${g}</span>
+                </td>
+            `;
+
+            if (giornoSettimana === 0) box.innerHTML += "</tr><tr>";
         }
 
         box.innerHTML += "</tr></table>";
@@ -391,7 +450,11 @@ function ricoloraFerie() {
 
         if (ferie[anno][m] && ferie[anno][m][g]) {
             td.classList.add("ferie");
-            td.textContent = `${g} (${ferie[anno][m][g]})`;
+
+            td.innerHTML = `
+                <span class="num">${g}</span>
+                <span class="nome-ferie">${ferie[anno][m][g]}</span>
+            `;
         }
     });
 }
