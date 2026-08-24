@@ -24,11 +24,12 @@ button {
     background: #3a0ca3;
     color: white;
     border: none;
-    padding: 10px 18px;
+    padding: 8px 14px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
-    margin-right: 10px;
+    margin-right: 8px;
+    margin-top: 5px;
 }
 
 button:hover {
@@ -57,6 +58,12 @@ td {
     text-align: center;
 }
 
+input, select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
+}
+
 /* CALENDARIO CENTRATO */
 #calendari {
     display: grid;
@@ -79,7 +86,7 @@ td {
     text-align: center;
     margin: 0 0 10px 0;
     color: #3a0ca3;
-    font-size: 20px;
+    font-size: 18px;
 }
 
 /* TABELLA GIORNI */
@@ -92,13 +99,13 @@ td {
     background: #3a0ca3;
     color: white;
     padding: 6px;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .mese-box td {
-    padding: 10px;
+    padding: 8px;
     border: 1px solid #ddd;
-    font-size: 15px;
+    font-size: 13px;
     cursor: pointer;
 }
 
@@ -108,11 +115,23 @@ td {
     font-weight: bold;
 }
 
+/* Feste */
+.mese-box td.festa {
+    background: #fff3b0;
+    font-weight: bold;
+}
+
 /* Ferie */
 .mese-box td.ferie {
     background: #ff9aa2;
     font-weight: bold;
     border-radius: 6px;
+}
+
+/* Numero giorno */
+.num {
+    display: block;
+    font-size: 13px;
 }
 
 /* Nome del dipendente sotto il numero */
@@ -130,23 +149,17 @@ td {
     left: 50%;
     transform: translate(-50%, -50%);
     background: white;
-    padding: 25px;
+    padding: 20px;
     border: 3px solid #3a0ca3;
     border-radius: 12px;
     display: none;
     z-index: 999;
-    width: 300px;
+    width: 320px;
 }
 
 #popup h3 {
     margin-top: 0;
     color: #3a0ca3;
-}
-
-input, select {
-    padding: 6px;
-    border-radius: 6px;
-    border: 1px solid #aaa;
 }
 </style>
 </head>
@@ -157,9 +170,6 @@ input, select {
 
 Anno:
 <select id="anno-select"></select>
-
-<button id="modifica-btn">MODIFICA</button>
-<button id="salva-btn">SALVA</button>
 
 <h3>Dipendenti</h3>
 
@@ -183,7 +193,7 @@ Anno:
 
 <!-- POPUP -->
 <div id="popup">
-    <h3>Assegna ferie</h3>
+    <h3>Gestione ferie</h3>
     <div id="popup-data"></div>
 
     <br>
@@ -191,12 +201,12 @@ Anno:
     <select id="popup-dip"></select>
 
     <br><br>
-    Giorni di ferie:<br>
+    Giorni consecutivi di ferie:<br>
     <input id="popup-giorni" type="number" value="1" min="1" style="width:80px;">
 
     <br><br>
-    <button id="popup-ok">OK</button>
-    <button id="popup-del">ELIMINA</button>
+    <button id="popup-add">AGGIUNGI</button>
+    <button id="popup-remove">LEVA</button>
     <button id="popup-close">CHIUDI</button>
 </div>
 
@@ -223,6 +233,17 @@ for (let a = 2024; a <= 2035; a++) {
     annoSel.appendChild(opt);
 }
 annoSel.value = new Date().getFullYear();
+
+annoSel.onchange = () => {
+    const anno = parseInt(annoSel.value);
+    // se non esiste ancora ferie per questo anno ma esiste per l'anno precedente
+    const prev = anno - 1;
+    if (!ferie[anno] && ferie[prev]) {
+        ferie[anno] = generaAnnoRuotato(prev, anno);
+        salvaFerie();
+    }
+    generaCalendario();
+};
 
 // =========================
 // DIPENDENTI
@@ -268,6 +289,7 @@ function renderDip() {
             dipendenti.splice(btn.dataset.i, 1);
             salvaDip();
             renderDip();
+            generaCalendario();
         };
     });
 }
@@ -277,6 +299,26 @@ document.getElementById("add-dip").onclick = () => {
     salvaDip();
     renderDip();
 };
+
+// =========================
+// FESTE ITALIANE (giorno/mese)
+// =========================
+
+function isFesta(g, m) {
+    const feste = [
+        "1-0",   // 1 gennaio
+        "6-0",   // 6 gennaio
+        "25-3",  // 25 aprile
+        "1-4",   // 1 maggio
+        "2-5",   // 2 giugno
+        "15-7",  // 15 agosto
+        "1-10",  // 1 novembre
+        "8-11",  // 8 dicembre
+        "25-11", // 25 dicembre
+        "26-11"  // 26 dicembre
+    ];
+    return feste.includes(`${g}-${m}`);
+}
 
 // =========================
 // CALENDARIO
@@ -294,7 +336,7 @@ function generaCalendario() {
         box.className = "mese-box";
 
         box.innerHTML = `
-            <h3>${meseNome(mese)}</h3>
+            <h3>${meseNome(mese)} ${anno}</h3>
             <table>
                 <tr>
                     <th>Lu</th><th>Ma</th><th>Me</th><th>Gi</th><th>Ve</th><th>Sa</th><th>Do</th>
@@ -311,10 +353,11 @@ function generaCalendario() {
             let giornoSettimana = new Date(anno, mese, g).getDay();
             let classe = "";
 
-            if (giornoSettimana === 0) classe = "dom";
+            if (giornoSettimana === 0) classe += " dom";
+            if (isFesta(g, mese)) classe += " festa";
 
             box.innerHTML += `
-                <td class="giorno ${classe}" data-m="${mese}" data-g="${g}">
+                <td class="giorno${classe}" data-m="${mese}" data-g="${g}">
                     <span class="num">${g}</span>
                 </td>
             `;
@@ -352,7 +395,7 @@ function apriPopup(td) {
     const giorno = td.dataset.g;
 
     document.getElementById("popup-data").textContent =
-        `${giorno} ${meseNome(mese)} ${anno}`;
+        `Giorno ${giorno} ${meseNome(mese)} ${anno}`;
 
     const sel = document.getElementById("popup-dip");
     sel.innerHTML = "";
@@ -372,8 +415,8 @@ document.getElementById("popup-close").onclick = () => {
     document.getElementById("popup").style.display = "none";
 };
 
-// ASSEGNA FERIE
-document.getElementById("popup-ok").onclick = () => {
+// AGGIUNGI FERIE
+document.getElementById("popup-add").onclick = () => {
     const anno = parseInt(annoSel.value);
     let mese = parseInt(giornoSelezionato.dataset.m);
     let giorno = parseInt(giornoSelezionato.dataset.g);
@@ -387,7 +430,15 @@ document.getElementById("popup-ok").onclick = () => {
         const giorniNelMese = new Date(anno, mese+1, 0).getDate();
 
         if (!ferie[anno][mese]) ferie[anno][mese] = {};
-        ferie[anno][mese][giorno] = dipendenti[dipIndex].nome;
+        if (!ferie[anno][mese][giorno]) ferie[anno][mese][giorno] = [];
+
+        // aggiungi dipendente se non già presente
+        const nome = dipendenti[dipIndex].nome;
+        if (!ferie[anno][mese][giorno].includes(nome)) {
+            ferie[anno][mese][giorno].push(nome);
+            dipendenti[dipIndex].oreResidue -= 8;
+            if (dipendenti[dipIndex].oreResidue < 0) dipendenti[dipIndex].oreResidue = 0;
+        }
 
         giorno++;
         if (giorno > giorniNelMese) {
@@ -397,9 +448,6 @@ document.getElementById("popup-ok").onclick = () => {
         }
     }
 
-    dipendenti[dipIndex].oreResidue -= (8 * giorniFerie);
-    if (dipendenti[dipIndex].oreResidue < 0) dipendenti[dipIndex].oreResidue = 0;
-
     salvaDip();
     salvaFerie();
     renderDip();
@@ -408,30 +456,45 @@ document.getElementById("popup-ok").onclick = () => {
     document.getElementById("popup").style.display = "none";
 };
 
-// ELIMINA FERIE
-document.getElementById("popup-del").onclick = () => {
+// LEVA FERIE
+document.getElementById("popup-remove").onclick = () => {
     const anno = parseInt(annoSel.value);
-    const mese = giornoSelezionato.dataset.m;
-    const giorno = giornoSelezionato.dataset.g;
+    let mese = parseInt(giornoSelezionato.dataset.m);
+    let giorno = parseInt(giornoSelezionato.dataset.g);
 
-    if (ferie[anno] && ferie[anno][mese] && ferie[anno][mese][giorno]) {
+    const dipIndex = parseInt(document.getElementById("popup-dip").value);
+    const giorniFerie = parseInt(document.getElementById("popup-giorni").value) || 1;
 
-        const nomeDip = ferie[anno][mese][giorno];
-        const dipIndex = dipendenti.findIndex(d => d.nome === nomeDip);
+    if (!ferie[anno]) return;
 
-        if (dipIndex !== -1) {
-            dipendenti[dipIndex].oreResidue += 8;
+    for (let i = 0; i < giorniFerie; i++) {
+        const giorniNelMese = new Date(anno, mese+1, 0).getDate();
+
+        if (ferie[anno][mese] && ferie[anno][mese][giorno]) {
+            const nome = dipendenti[dipIndex].nome;
+            const arr = ferie[anno][mese][giorno];
+            const idx = arr.indexOf(nome);
+            if (idx !== -1) {
+                arr.splice(idx, 1);
+                dipendenti[dipIndex].oreResidue += 8;
+            }
+            if (arr.length === 0) {
+                delete ferie[anno][mese][giorno];
+            }
         }
 
-        delete ferie[anno][mese][giorno];
-
-        salvaDip();
-        salvaFerie();
-        renderDip();
-        generaCalendario();
-
-        alert("Ferie eliminate e ore residue aggiornate.");
+        giorno++;
+        if (giorno > giorniNelMese) {
+            giorno = 1;
+            mese++;
+            if (mese > 11) break;
+        }
     }
+
+    salvaDip();
+    salvaFerie();
+    renderDip();
+    generaCalendario();
 
     document.getElementById("popup").style.display = "none";
 };
@@ -450,13 +513,43 @@ function ricoloraFerie() {
 
         if (ferie[anno][m] && ferie[anno][m][g]) {
             td.classList.add("ferie");
+            const nomi = ferie[anno][m][g];
 
             td.innerHTML = `
                 <span class="num">${g}</span>
-                <span class="nome-ferie">${ferie[anno][m][g]}</span>
+                ${nomi.map(n => `<span class="nome-ferie">${n}</span>`).join("")}
             `;
         }
     });
+}
+
+// =========================
+// ROTAZIONE ANNO SUCCESSIVO
+// =========================
+
+function generaAnnoRuotato(prevAnno, nuovoAnno) {
+    const nuovo = {};
+    const prev = ferie[prevAnno];
+    if (!prev) return nuovo;
+
+    // ruota i nomi in base alla lista dipendenti
+    const listaNomi = dipendenti.map(d => d.nome);
+
+    for (let m in prev) {
+        nuovo[m] = {};
+        for (let g in prev[m]) {
+            const arr = prev[m][g]; // array di nomi
+            const nuoviNomi = arr.map(nome => {
+                const idx = listaNomi.indexOf(nome);
+                if (idx === -1) return nome;
+                const nuovoIdx = (idx + 1) % listaNomi.length;
+                return listaNomi[nuovoIdx];
+            });
+            nuovo[m][g] = nuoviNomi;
+        }
+    }
+
+    return nuovo;
 }
 
 // =========================
