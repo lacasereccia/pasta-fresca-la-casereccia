@@ -6,431 +6,280 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f8f9fa;
-    color: #222;
-}
-
-#top-controls {
-    padding: 20px;
-    background: white;
-    border-bottom: 3px solid #3a0ca3;
-}
-
-select, input {
-    padding: 10px;
-    margin-right: 10px;
-}
-
-button {
-    padding: 10px 20px;
-    margin-right: 10px;
-    border: none;
-    background: #3a0ca3;
-    color: white;
-    font-weight: bold;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #f72585;
-}
-
-#dipendenti-box {
-    padding: 20px;
-    background: white;
-    border-bottom: 3px solid #3a0ca3;
-}
-
-#dipendenti-box table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-#dipendenti-box th, #dipendenti-box td {
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
-}
-
-#calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 25px;
-    padding: 20px;
-}
-
-.month {
-    background: white;
-    border: 2px solid #3a0ca3;
-    border-radius: 10px;
-    padding: 10px;
-}
-
-.month table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.month th, .month td {
-    padding: 6px;
-    text-align: center;
-    border: 1px solid #ddd;
-    cursor: pointer;
-}
-
-.festivo { background: #f72585; color: white; }
-.domenica { background: #7209b7; color: white; }
-.bloccato { background: #b5179e; color: white; }
-.ferie { background: #4cc9f0; color: black; }
-
+body { font-family: Arial; background:#f8f9fa; margin:0; padding:20px; }
+h2 { margin-bottom:20px; }
+table { border-collapse: collapse; width:100%; margin-bottom:20px; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+td.ferie { background:#ffb3b3; font-weight:bold; }
 #popup {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border: 3px solid #3a0ca3;
-    border-radius: 10px;
-    display: none;
-    z-index: 9999;
-    width: 350px;
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:white; padding:20px; border:2px solid #3a0ca3; border-radius:10px;
+    display:none; z-index:999;
 }
 </style>
 </head>
 
 <body>
 
-<div id="top-controls">
-    <h2>Gestione Ferie</h2>
+<h2>Gestione Ferie</h2>
 
-    <label>Anno:</label>
-    <select id="anno-select"></select>
+Anno:
+<select id="anno-select"></select>
+<button id="modifica-btn">MODIFICA</button>
+<button id="salva-btn">SALVA</button>
+<button id="aggiorna-btn">AGGIORNA</button>
 
-    <button id="modifica-btn">MODIFICA</button>
-    <button id="salva-btn">SALVA</button>
-    <button id="aggiorna-btn">AGGIORNA</button>
-</div>
+<h3>Dipendenti</h3>
+<table id="dip-table">
+<thead>
+<tr><th>Nome</th><th>Ore iniziali</th><th>Ore residue</th><th>Elimina</th></tr>
+</thead>
+<tbody></tbody>
+</table>
 
-<div id="dipendenti-box">
-    <h3>Dipendenti</h3>
+<button id="add-dip">AGGIUNGI DIPENDENTE</button>
 
-    <table id="dipendenti-table">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Ore iniziali</th>
-                <th>Ore residue</th>
-                <th>Elimina</th>
-            </tr>
-        </thead>
-        <tbody id="dipendenti-body"></tbody>
-    </table>
-
-    <button id="add-dip-btn">AGGIUNGI DIPENDENTE</button>
-</div>
-
-<div id="calendar-grid"></div>
+<div id="calendari"></div>
 
 <!-- POPUP FERIE -->
 <div id="popup">
     <h3>Assegna ferie</h3>
-
-    <label>Dipendente:</label>
-    <select id="popup-dipendente"></select>
-
-    <label>Numero giorni consecutivi:</label>
-    <input type="number" id="popup-giorni" min="1">
-
-    <button id="popup-conferma">Conferma</button>
-    <button id="popup-chiudi">Chiudi</button>
+    <div id="popup-data"></div>
+    Dipendente:
+    <select id="popup-dip"></select>
+    <br><br>
+    <button id="popup-ok">OK</button>
+    <button id="popup-del">ELIMINA</button>
+    <button id="popup-close">CHIUDI</button>
 </div>
 
 <script>
 // =========================
-// ANNI
+// STORAGE
 // =========================
 
-function initAnni() {
-    const sel = document.getElementById("anno-select");
-    for (let a = 2025; a <= 2035; a++) {
-        const opt = document.createElement("option");
-        opt.value = a;
-        opt.textContent = a;
-        sel.appendChild(opt);
-    }
-}
-initAnni();
+let dipendenti = JSON.parse(localStorage.getItem("dipendenti")) || [];
+let ferie = JSON.parse(localStorage.getItem("ferie")) || {};
 
-let annoCorrente = 2025;
+function salvaDip() { localStorage.setItem("dipendenti", JSON.stringify(dipendenti)); }
+function salvaFerie() { localStorage.setItem("ferie", JSON.stringify(ferie)); }
+
+// =========================
+// ANNO
+// =========================
+
+const annoSel = document.getElementById("anno-select");
+for (let a = 2024; a <= 2035; a++) {
+    let opt = document.createElement("option");
+    opt.value = a; opt.textContent = a;
+    annoSel.appendChild(opt);
+}
+annoSel.value = new Date().getFullYear();
 
 // =========================
 // DIPENDENTI
 // =========================
 
-let dipendenti = JSON.parse(localStorage.getItem("dipendenti")) || [
-    { nome: "Marco", oreIniziali: 160, oreResidue: 160 },
-    { nome: "Davide", oreIniziali: 160, oreResidue: 160 }
-];
-
-function salvaDipendenti() {
-    localStorage.setItem("dipendenti", JSON.stringify(dipendenti));
-}
-
-function initDipendenti() {
-    const body = document.getElementById("dipendenti-body");
-    body.innerHTML = "";
+function renderDip() {
+    const tbody = document.querySelector("#dip-table tbody");
+    tbody.innerHTML = "";
 
     dipendenti.forEach((d, i) => {
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
             <td><input value="${d.nome}" data-i="${i}" class="nome"></td>
-            <td><input type="number" value="${d.oreIniziali}" data-i="${i}" class="oreI"></td>
-            <td><input type="number" value="${d.oreResidue}" data-i="${i}" class="oreR"></td>
-            <td><button onclick="eliminaDip(${i})">X</button></td>
+            <td><input value="${d.oreIniziali}" data-i="${i}" class="oreI"></td>
+            <td><input value="${d.oreResidue}" data-i="${i}" class="oreR" disabled></td>
+            <td><button data-i="${i}" class="delDip">X</button></td>
         `;
 
-        body.appendChild(tr);
+        tbody.appendChild(tr);
     });
 
-    const sel = document.getElementById("popup-dipendente");
-    sel.innerHTML = "";
-    dipendenti.forEach(d => {
-        const opt = document.createElement("option");
-        opt.value = d.nome;
-        opt.textContent = d.nome;
-        sel.appendChild(opt);
+    // Modifica nome
+    document.querySelectorAll(".nome").forEach(inp => {
+        inp.oninput = () => {
+            dipendenti[inp.dataset.i].nome = inp.value;
+            salvaDip();
+        };
+    });
+
+    // Modifica ore iniziali → aggiorna ore residue
+    document.querySelectorAll(".oreI").forEach(inp => {
+        inp.oninput = () => {
+            const i = inp.dataset.i;
+            const nuove = parseInt(inp.value) || 0;
+            dipendenti[i].oreIniziali = nuove;
+            dipendenti[i].oreResidue = nuove;
+            salvaDip();
+            renderDip();
+        };
+    });
+
+    // Elimina dipendente
+    document.querySelectorAll(".delDip").forEach(btn => {
+        btn.onclick = () => {
+            dipendenti.splice(btn.dataset.i, 1);
+            salvaDip();
+            renderDip();
+        };
     });
 }
 
-function eliminaDip(i) {
-    dipendenti.splice(i, 1);
-    salvaDipendenti();
-    initDipendenti();
-}
-
-document.getElementById("add-dip-btn").addEventListener("click", () => {
-    dipendenti.push({ nome: "Nuovo", oreIniziali: 0, oreResidue: 0 });
-    salvaDipendenti();
-    initDipendenti();
-});
-
-// =========================
-// PASQUA AUTOMATICA
-// =========================
-
-function getPasqua(year) {
-    let a = year % 19;
-    let b = Math.floor(year / 100);
-    let c = year % 100;
-    let d = Math.floor(b / 4);
-    let e = b % 4;
-    let f = Math.floor((b + 8) / 25);
-    let g = Math.floor((b - f + 1) / 3);
-    let h = (19 * a + b - d - g + 15) % 30;
-    let i = Math.floor(c / 4);
-    let k = c % 4;
-    let l = (32 + 2 * e + 2 * i - h - k) % 7;
-    let m = Math.floor((a + 11 * h + 22 * l) / 451);
-    let mese = Math.floor((h + l - 7 * m + 114) / 31);
-    let giorno = ((h + l - 7 * m + 114) % 31) + 1;
-    return { mese: mese - 1, giorno };
-}
+document.getElementById("add-dip").onclick = () => {
+    dipendenti.push({ nome:"Nuovo", oreIniziali:0, oreResidue:0 });
+    salvaDip();
+    renderDip();
+};
 
 // =========================
 // CALENDARIO
 // =========================
 
-let ferie = JSON.parse(localStorage.getItem("ferie")) || {};
+function generaCalendario() {
+    const anno = parseInt(annoSel.value);
+    const div = document.getElementById("calendari");
+    div.innerHTML = "";
 
-function salvaFerie() {
-    localStorage.setItem("ferie", JSON.stringify(ferie));
-}
+    for (let mese = 0; mese < 12; mese++) {
+        const giorni = new Date(anno, mese+1, 0).getDate();
 
-function generaCalendario(anno) {
-    annoCorrente = anno;
+        let html = `<h3>${meseNome(mese)} ${anno}</h3><table><tr>`;
+        ["Lu","Ma","Me","Gi","Ve","Sa","Do"].forEach(g => html += `<th>${g}</th>`);
+        html += "</tr><tr>";
 
-    const grid = document.getElementById("calendar-grid");
-    grid.innerHTML = "";
+        let firstDay = new Date(anno, mese, 1).getDay();
+        if (firstDay === 0) firstDay = 7;
 
-    const pasqua = getPasqua(anno);
-    const pasquaDate = new Date(anno, pasqua.mese, pasqua.giorno);
-
-    for (let m = 0; m < 12; m++) {
-        const div = document.createElement("div");
-        div.className = "month";
-
-        div.innerHTML = `<h3>${["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][m]} ${anno}</h3>`;
-
-        const table = document.createElement("table");
-
-        const thead = document.createElement("thead");
-        thead.innerHTML = `
-            <tr>
-                <th>Lu</th><th>Ma</th><th>Me</th><th>Gi</th><th>Ve</th><th>Sa</th><th>Do</th>
-            </tr>`;
-        table.appendChild(thead);
-
-        const tbody = document.createElement("tbody");
-
-        const primo = new Date(anno, m, 1).getDay();
-        const offset = primo === 0 ? 6 : primo - 1;
-        const giorni = new Date(anno, m + 1, 0).getDate();
-
-        let r = document.createElement("tr");
-        for (let i = 0; i < offset; i++) r.appendChild(document.createElement("td"));
+        for (let i = 1; i < firstDay; i++) html += "<td></td>";
 
         for (let g = 1; g <= giorni; g++) {
-            if (r.children.length === 7) {
-                tbody.appendChild(r);
-                r = document.createElement("tr");
-            }
-
-            const td = document.createElement("td");
-            td.textContent = g;
-            td.dataset.mese = m;
-            td.dataset.giorno = g;
-
-            const d = new Date(anno, m, g);
-
-            if (d.getDay() === 0) td.classList.add("domenica");
-
-            if (m === pasqua.mese && g === pasqua.giorno) td.classList.add("festivo");
-            if (d >= pasquaDate && d <= new Date(pasquaDate.getTime() + 14 * 86400000)) {
-                td.classList.add("bloccato");
-            }
-
-            td.addEventListener("click", () => onDayClick(td));
-
-            r.appendChild(td);
+            html += `<td class="giorno" data-m="${mese}" data-g="${g}">${g}</td>`;
+            if (new Date(anno, mese, g).getDay() === 0) html += "</tr><tr>";
         }
 
-        while (r.children.length < 7) r.appendChild(document.createElement("td"));
-        tbody.appendChild(r);
-
-        table.appendChild(tbody);
-        div.appendChild(table);
-        grid.appendChild(div);
+        html += "</tr></table>";
+        div.innerHTML += html;
     }
+
+    // Click giorno
+    document.querySelectorAll(".giorno").forEach(td => {
+        td.onclick = () => apriPopup(td);
+    });
 
     ricoloraFerie();
 }
 
+function meseNome(m) {
+    return ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+            "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][m];
+}
+
 // =========================
-// CLICK GIORNO
+// POPUP
 // =========================
 
 let giornoSelezionato = null;
 
-function onDayClick(td) {
-    giornoSelezionato = {
-        mese: parseInt(td.dataset.mese),
-        giorno: parseInt(td.dataset.giorno)
-    };
+function apriPopup(td) {
+    giornoSelezionato = td;
+    const anno = parseInt(annoSel.value);
+    const mese = td.dataset.m;
+    const giorno = td.dataset.g;
+
+    document.getElementById("popup-data").textContent =
+        `${giorno} ${meseNome(mese)} ${anno}`;
+
+    const sel = document.getElementById("popup-dip");
+    sel.innerHTML = "";
+    dipendenti.forEach((d,i) => {
+        let opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = d.nome;
+        sel.appendChild(opt);
+    });
+
     document.getElementById("popup").style.display = "block";
 }
 
-// =========================
+document.getElementById("popup-close").onclick = () => {
+    document.getElementById("popup").style.display = "none";
+};
+
 // ASSEGNA FERIE
-// =========================
+document.getElementById("popup-ok").onclick = () => {
+    const anno = parseInt(annoSel.value);
+    const mese = giornoSelezionato.dataset.m;
+    const giorno = giornoSelezionato.dataset.g;
+    const dip = document.getElementById("popup-dip").value;
 
-document.getElementById("popup-conferma").addEventListener("click", () => {
-    const nome = document.getElementById("popup-dipendente").value;
-    const giorni = parseInt(document.getElementById("popup-giorni").value);
+    if (!ferie[anno]) ferie[anno] = {};
+    if (!ferie[anno][mese]) ferie[anno][mese] = {};
 
-    if (!ferie[annoCorrente]) ferie[annoCorrente] = {};
-    if (!ferie[annoCorrente][giornoSelezionato.mese]) ferie[annoCorrente][giornoSelezionato.mese] = {};
+    ferie[anno][mese][giorno] = dipendenti[dip].nome;
 
-    for (let i = 0; i < giorni; i++) {
-        const d = new Date(annoCorrente, giornoSelezionato.mese, giornoSelezionato.giorno + i);
-        const m = d.getMonth();
-        const g = d.getDate();
+    // scala ore residue
+    dipendenti[dip].oreResidue -= 8;
+    if (dipendenti[dip].oreResidue < 0) dipendenti[dip].oreResidue = 0;
 
-        if (!ferie[annoCorrente][m]) ferie[annoCorrente][m] = {};
-        ferie[annoCorrente][m][g] = nome;
+    salvaDip();
+    salvaFerie();
+    renderDip();
+    generaCalendario();
+
+    document.getElementById("popup").style.display = "none";
+};
+
+// ELIMINA FERIE
+document.getElementById("popup-del").onclick = () => {
+    const anno = parseInt(annoSel.value);
+    const mese = giornoSelezionato.dataset.m;
+    const giorno = giornoSelezionato.dataset.g;
+
+    if (ferie[anno] && ferie[anno][mese] && ferie[anno][mese][giorno]) {
+        delete ferie[anno][mese][giorno];
+        salvaFerie();
+        generaCalendario();
+        alert("Ferie eliminate.");
     }
 
-    salvaFerie();
-    ricoloraFerie();
     document.getElementById("popup").style.display = "none";
-});
-
-document.getElementById("popup-chiudi").addEventListener("click", () => {
-    document.getElementById("popup").style.display = "none";
-});
+};
 
 // =========================
-// RICOLORA
+// COLORA FERIE + NOME
 // =========================
 
 function ricoloraFerie() {
-    const celle = document.querySelectorAll(".month td");
+    const anno = parseInt(annoSel.value);
+    if (!ferie[anno]) return;
 
-    celle.forEach(td => {
-        const m = parseInt(td.dataset.mese);
-        const g = parseInt(td.dataset.giorno);
+    document.querySelectorAll(".giorno").forEach(td => {
+        const m = td.dataset.m;
+        const g = td.dataset.g;
 
-        if (ferie[annoCorrente] &&
-            ferie[annoCorrente][m] &&
-            ferie[annoCorrente][m][g]) {
+        if (ferie[anno][m] && ferie[anno][m][g]) {
             td.classList.add("ferie");
+            td.textContent = `${g} (${ferie[anno][m][g]})`;
         }
     });
 }
 
 // =========================
-// MODIFICA / SALVA
+// AGGIORNA (NON CAMBIA PIÙ L’ORDINE)
 // =========================
 
-document.getElementById("modifica-btn").addEventListener("click", () => {
-    document.querySelectorAll("#dipendenti-box input").forEach(i => i.disabled = false);
-});
-
-document.getElementById("salva-btn").addEventListener("click", () => {
-    document.querySelectorAll("#dipendenti-box input").forEach(i => i.disabled = true);
-
-    document.querySelectorAll(".nome").forEach(i => {
-        dipendenti[i.dataset.i].nome = i.value;
-    });
-    document.querySelectorAll(".oreI").forEach(i => {
-        dipendenti[i.dataset.i].oreIniziali = parseInt(i.value);
-    });
-    document.querySelectorAll(".oreR").forEach(i => {
-        dipendenti[i.dataset.i].oreResidue = parseInt(i.value);
-    });
-
-    salvaDipendenti();
-    initDipendenti();
-});
+document.getElementById("aggiorna-btn").onclick = () => {
+    alert("Aggiorna ora NON modifica più l’ordine dei dipendenti.");
+};
 
 // =========================
-// AGGIORNA (ROTTAZIONE)
+// INIT
 // =========================
 
-document.getElementById("aggiorna-btn").addEventListener("click", () => {
-    const primo = dipendenti.shift();
-    dipendenti.push(primo);
-    salvaDipendenti();
-    initDipendenti();
-});
-
-// =========================
-// CAMBIO ANNO
-// =========================
-
-document.getElementById("anno-select").addEventListener("change", () => {
-    generaCalendario(parseInt(document.getElementById("anno-select").value));
-});
-
-// =========================
-// AVVIO
-// =========================
-
-initDipendenti();
-generaCalendario(annoCorrente);
+renderDip();
+generaCalendario();
 
 </script>
 
