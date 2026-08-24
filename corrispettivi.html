@@ -19,7 +19,7 @@ body {
     border-bottom: 3px solid #3a0ca3;
 }
 
-select, input[type="date"] {
+select {
     padding: 10px;
     margin-right: 10px;
 }
@@ -67,17 +67,13 @@ th, td {
 .festivo { background: #f72585; color: white; }
 .domenica { background: #7209b7; color: white; }
 
-#popup-periodo {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border: 3px solid #3a0ca3;
-    border-radius: 10px;
-    display: none;
-    z-index: 9999;
-    width: 350px;
+.tot-prec-box {
+    font-weight: bold;
+    margin-bottom: 10px;
+    background: #fff;
+    padding: 10px;
+    border: 2px solid #3a0ca3;
+    border-radius: 8px;
 }
 </style>
 </head>
@@ -86,9 +82,6 @@ th, td {
 
 <div id="top-controls">
     <h2>Corrispetttivi</h2>
-
-    <label>Giorno:</label>
-    <select id="giorno-select"></select>
 
     <label>Mese:</label>
     <select id="mese-select"></select>
@@ -100,12 +93,23 @@ th, td {
 
     <button id="confronta-periodo-btn">Confronta periodo</button>
 
-    <div style="margin-top:10px; font-weight:bold;">
-        Totale mese precedente: <span id="tot-prec">0</span>
+    <div style="margin-top:10px;">
+        <div class="tot-prec-box">
+            Totale mese precedente Marotta:
+            <input id="tot-prec-marotta" value="0" disabled style="width:120px;">
+        </div>
+        <div class="tot-prec-box">
+            Totale mese precedente Senigallia:
+            <input id="tot-prec-senigallia" value="0" disabled style="width:120px;">
+        </div>
+
+        <button id="modifica-totali">MODIFICA</button>
+        <button id="salva-totali">SALVA</button>
     </div>
 </div>
 
 <div class="container">
+
     <div class="table-box">
         <h3>Marotta</h3>
         <table id="tab-marotta">
@@ -149,36 +153,13 @@ th, td {
             </tfoot>
         </table>
     </div>
-</div>
 
-<!-- POPUP CONFRONTO PERIODO -->
-<div id="popup-periodo">
-    <h3>Confronta periodo</h3>
-
-    <label>Dal:</label>
-    <input type="date" id="p1-dal">
-
-    <label>Al:</label>
-    <input type="date" id="p1-al">
-
-    <button id="confronta-periodo-conferma">Conferma</button>
-    <button onclick="chiudiPeriodo()">Chiudi</button>
 </div>
 
 <script>
 // =========================
-// SELECT GIORNO / MESE / ANNO
+// SELECT MESE / ANNO
 // =========================
-
-function initGiorni() {
-    const giornoSel = document.getElementById("giorno-select");
-    for (let g = 1; g <= 31; g++) {
-        let opt = document.createElement("option");
-        opt.value = g;
-        opt.textContent = g;
-        giornoSel.appendChild(opt);
-    }
-}
 
 const mesi = [
     "Gennaio","Febbraio","Marzo","Aprile",
@@ -186,18 +167,17 @@ const mesi = [
     "Settembre","Ottobre","Novembre","Dicembre"
 ];
 
-function initMesi() {
+function initSelect() {
     const meseSel = document.getElementById("mese-select");
+    const annoSel = document.getElementById("anno-select");
+
     mesi.forEach((m, i) => {
         let opt = document.createElement("option");
         opt.value = i;
         opt.textContent = m;
         meseSel.appendChild(opt);
     });
-}
 
-function initAnni() {
-    const annoSel = document.getElementById("anno-select");
     for (let a = 2025; a <= 2035; a++) {
         let opt = document.createElement("option");
         opt.value = a;
@@ -205,10 +185,7 @@ function initAnni() {
         annoSel.appendChild(opt);
     }
 }
-
-initGiorni();
-initMesi();
-initAnni();
+initSelect();
 
 // =========================
 // FESTE
@@ -226,8 +203,6 @@ function isFestivo(m, g) {
 // =========================
 // GENERA TABELLE
 // =========================
-
-let totalePrecedente = 0;
 
 function generaTabelle() {
     const mese = parseInt(document.getElementById("mese-select").value);
@@ -251,7 +226,10 @@ function generaTabelle() {
         senigBody.appendChild(creaRiga(g, classe, "senigallia"));
     }
 
+    caricaMese("marotta");
+    caricaMese("senigallia");
     mostraTotalePrecedente();
+    caricaTotaliManuali();
 }
 
 function creaRiga(g, classe, sede) {
@@ -333,6 +311,8 @@ function caricaMese(sede) {
         righe[i].children[3].children[0].value = d.spese;
         righe[i].children[4].textContent = d.tot;
     });
+
+    aggiornaTotaleSede(sede);
 }
 
 // =========================
@@ -358,13 +338,12 @@ function aggiornaTotaleSede(sede) {
 
     document.getElementById(`tot-${sede}`).textContent = totale.toFixed(2);
 
-    if (sede === "marotta") {
-        totalePrecedente = totale;
-        salvaMese("marotta");
-    }
-
-    salvaMese("senigallia");
+    salvaMese(sede);
 }
+
+// =========================
+// TOTALE MESE PRECEDENTE (CALCOLATO)
+// =========================
 
 function mostraTotalePrecedente() {
     const mese = parseInt(document.getElementById("mese-select").value);
@@ -378,45 +357,78 @@ function mostraTotalePrecedente() {
         annoPrec = anno - 1;
     }
 
-    const datiPrec = JSON.parse(localStorage.getItem(`corrisp-marotta-${annoPrec}-${mesePrec}`));
+    const datiMarotta = JSON.parse(localStorage.getItem(`corrisp-marotta-${annoPrec}-${mesePrec}`));
+    const datiSenigallia = JSON.parse(localStorage.getItem(`corrisp-senigallia-${annoPrec}-${mesePrec}`));
 
-    if (!datiPrec) {
-        document.getElementById("tot-prec").textContent = "0";
-        return;
-    }
+    let totM = 0;
+    let totS = 0;
 
-    let tot = 0;
-    datiPrec.forEach(d => tot += parseFloat(d.tot));
+    if (datiMarotta) datiMarotta.forEach(d => totM += parseFloat(d.tot));
+    if (datiSenigallia) datiSenigallia.forEach(d => totS += parseFloat(d.tot));
 
-    document.getElementById("tot-prec").textContent = tot.toFixed(2);
+    // Se non ci sono valori manuali salvati, metti questi
+    const meseStr = document.getElementById("mese-select").value;
+    const annoStr = document.getElementById("anno-select").value;
+
+    const salvatoM = localStorage.getItem(`totPrec-marotta-${annoStr}-${meseStr}`);
+    const salvatoS = localStorage.getItem(`totPrec-senigallia-${annoStr}-${meseStr}`);
+
+    document.getElementById("tot-prec-marotta").value = salvatoM || totM.toFixed(2);
+    document.getElementById("tot-prec-senigallia").value = salvatoS || totS.toFixed(2);
 }
 
 // =========================
-// POPUP CONFRONTO PERIODO
+// MODIFICA / SALVA TOTALI MESE PRECEDENTE
+// =========================
+
+document.getElementById("modifica-totali").addEventListener("click", () => {
+    document.getElementById("tot-prec-marotta").disabled = false;
+    document.getElementById("tot-prec-senigallia").disabled = false;
+});
+
+document.getElementById("salva-totali").addEventListener("click", () => {
+    document.getElementById("tot-prec-marotta").disabled = true;
+    document.getElementById("tot-prec-senigallia").disabled = true;
+
+    const mese = document.getElementById("mese-select").value;
+    const anno = document.getElementById("anno-select").value;
+
+    const totM = document.getElementById("tot-prec-marotta").value;
+    const totS = document.getElementById("tot-prec-senigallia").value;
+
+    localStorage.setItem(`totPrec-marotta-${anno}-${mese}`, totM);
+    localStorage.setItem(`totPrec-senigallia-${anno}-${mese}`, totS);
+
+    alert("Totali mese precedente salvati.");
+});
+
+function caricaTotaliManuali() {
+    const mese = document.getElementById("mese-select").value;
+    const anno = document.getElementById("anno-select").value;
+
+    const salvatoM = localStorage.getItem(`totPrec-marotta-${anno}-${mese}`);
+    const salvatoS = localStorage.getItem(`totPrec-senigallia-${anno}-${mese}`);
+
+    if (salvatoM) document.getElementById("tot-prec-marotta").value = salvatoM;
+    if (salvatoS) document.getElementById("tot-prec-senigallia").value = salvatoS;
+}
+
+// =========================
+// CONFRONTO PERIODO → NUOVA PAGINA
 // =========================
 
 document.getElementById("confronta-periodo-btn").addEventListener("click", () => {
-    document.getElementById("popup-periodo").style.display = "block";
-});
+    const mese = document.getElementById("mese-select").value;
+    const anno = document.getElementById("anno-select").value;
 
-function chiudiPeriodo() {
-    document.getElementById("popup-periodo").style.display = "none";
-}
-
-document.getElementById("confronta-periodo-conferma").addEventListener("click", () => {
-    alert("Confronto periodo attivato.\nFunziona anche con tutti i valori a 0.");
+    window.location.href = `confronto.html?mese=${mese}&anno=${anno}`;
 });
 
 // =========================
-// EVENTO CARICA
+// CARICA
 // =========================
 
-document.getElementById("carica-btn").addEventListener("click", () => {
-    generaTabelle();
-    caricaMese("marotta");
-    caricaMese("senigallia");
-    mostraTotalePrecedente();
-});
+document.getElementById("carica-btn").addEventListener("click", generaTabelle);
 
 </script>
 
