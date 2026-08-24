@@ -201,7 +201,6 @@ function renderDip() {
         tbody.appendChild(tr);
     });
 
-    // Modifica nome
     document.querySelectorAll(".nome").forEach(inp => {
         inp.oninput = () => {
             dipendenti[inp.dataset.i].nome = inp.value;
@@ -209,7 +208,6 @@ function renderDip() {
         };
     });
 
-    // Modifica ore iniziali → reset ore residue
     document.querySelectorAll(".oreI").forEach(inp => {
         inp.oninput = () => {
             const i = inp.dataset.i;
@@ -221,7 +219,6 @@ function renderDip() {
         };
     });
 
-    // Elimina dipendente
     document.querySelectorAll(".delDip").forEach(btn => {
         btn.onclick = () => {
             dipendenti.splice(btn.dataset.i, 1);
