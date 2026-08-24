@@ -67,8 +67,8 @@ input, select {
 /* CALENDARIO CENTRATO */
 #calendari {
     display: grid;
-    grid-template-columns: repeat(4, 260px); /* 4 mesi fissi */
-    justify-content: center; /* CENTRA TUTTO */
+    grid-template-columns: repeat(4, 260px);
+    justify-content: center;
     gap: 30px;
     margin-top: 20px;
 }
@@ -111,13 +111,15 @@ input, select {
 
 /* Domenica */
 .mese-box td.dom {
-    background: #ffe0e0;
+    background: #ffcccc;
+    color: red;
     font-weight: bold;
 }
 
-/* Feste */
+/* Feste italiane */
 .mese-box td.festa {
-    background: #fff3b0;
+    background: #ffe6e6;
+    color: red;
     font-weight: bold;
 }
 
@@ -201,7 +203,7 @@ Anno:
     <select id="popup-dip"></select>
 
     <br><br>
-    Giorni consecutivi di ferie:<br>
+    Giorni consecutivi:<br>
     <input id="popup-giorni" type="number" value="1" min="1" style="width:80px;">
 
     <br><br>
@@ -235,13 +237,6 @@ for (let a = 2024; a <= 2035; a++) {
 annoSel.value = new Date().getFullYear();
 
 annoSel.onchange = () => {
-    const anno = parseInt(annoSel.value);
-    // se non esiste ancora ferie per questo anno ma esiste per l'anno precedente
-    const prev = anno - 1;
-    if (!ferie[anno] && ferie[prev]) {
-        ferie[anno] = generaAnnoRuotato(prev, anno);
-        salvaFerie();
-    }
     generaCalendario();
 };
 
@@ -301,21 +296,12 @@ document.getElementById("add-dip").onclick = () => {
 };
 
 // =========================
-// FESTE ITALIANE (giorno/mese)
+// FESTE ITALIANE
 // =========================
 
 function isFesta(g, m) {
     const feste = [
-        "1-0",   // 1 gennaio
-        "6-0",   // 6 gennaio
-        "25-3",  // 25 aprile
-        "1-4",   // 1 maggio
-        "2-5",   // 2 giugno
-        "15-7",  // 15 agosto
-        "1-10",  // 1 novembre
-        "8-11",  // 8 dicembre
-        "25-11", // 25 dicembre
-        "26-11"  // 26 dicembre
+        "1-0","6-0","25-3","1-4","2-5","15-7","1-10","8-11","25-11","26-11"
     ];
     return feste.includes(`${g}-${m}`);
 }
@@ -432,7 +418,6 @@ document.getElementById("popup-add").onclick = () => {
         if (!ferie[anno][mese]) ferie[anno][mese] = {};
         if (!ferie[anno][mese][giorno]) ferie[anno][mese][giorno] = [];
 
-        // aggiungi dipendente se non già presente
         const nome = dipendenti[dipIndex].nome;
         if (!ferie[anno][mese][giorno].includes(nome)) {
             ferie[anno][mese][giorno].push(nome);
@@ -521,35 +506,6 @@ function ricoloraFerie() {
             `;
         }
     });
-}
-
-// =========================
-// ROTAZIONE ANNO SUCCESSIVO
-// =========================
-
-function generaAnnoRuotato(prevAnno, nuovoAnno) {
-    const nuovo = {};
-    const prev = ferie[prevAnno];
-    if (!prev) return nuovo;
-
-    // ruota i nomi in base alla lista dipendenti
-    const listaNomi = dipendenti.map(d => d.nome);
-
-    for (let m in prev) {
-        nuovo[m] = {};
-        for (let g in prev[m]) {
-            const arr = prev[m][g]; // array di nomi
-            const nuoviNomi = arr.map(nome => {
-                const idx = listaNomi.indexOf(nome);
-                if (idx === -1) return nome;
-                const nuovoIdx = (idx + 1) % listaNomi.length;
-                return listaNomi[nuovoIdx];
-            });
-            nuovo[m][g] = nuoviNomi;
-        }
-    }
-
-    return nuovo;
 }
 
 // =========================
