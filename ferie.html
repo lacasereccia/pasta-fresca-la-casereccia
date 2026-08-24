@@ -6,15 +6,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body { font-family: Arial; background:#f8f9fa; margin:0; padding:20px; }
-h2 { margin-bottom:20px; }
-table { border-collapse: collapse; width:100%; margin-bottom:20px; }
-th, td { border:1px solid #ccc; padding:6px; text-align:center; }
-td.ferie { background:#ffb3b3; font-weight:bold; }
+body {
+    font-family: Arial;
+    background: #f4f5f7;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #3a0ca3;
+}
+
+button {
+    background: #3a0ca3;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+button:hover {
+    background: #f72585;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th {
+    background: #3a0ca3;
+    color: white;
+    padding: 8px;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    text-align: center;
+}
+
+td.ferie {
+    background: #ffb3b3;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+#calendari {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+}
+
+.mese-box {
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid #3a0ca3;
+}
+
+.mese-box h3 {
+    text-align: center;
+    margin-top: 0;
+    color: #3a0ca3;
+}
+
 #popup {
-    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:white; padding:20px; border:2px solid #3a0ca3; border-radius:10px;
-    display:none; z-index:999;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 25px;
+    border: 3px solid #3a0ca3;
+    border-radius: 12px;
+    display: none;
+    z-index: 999;
+    width: 300px;
+}
+
+#popup h3 {
+    margin-top: 0;
+    color: #3a0ca3;
+}
+
+input, select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
 }
 </style>
 </head>
@@ -25,28 +113,43 @@ td.ferie { background:#ffb3b3; font-weight:bold; }
 
 Anno:
 <select id="anno-select"></select>
+
 <button id="modifica-btn">MODIFICA</button>
 <button id="salva-btn">SALVA</button>
-<button id="aggiorna-btn">AGGIORNA</button>
 
 <h3>Dipendenti</h3>
+
 <table id="dip-table">
 <thead>
-<tr><th>Nome</th><th>Ore iniziali</th><th>Ore residue</th><th>Elimina</th></tr>
+<tr>
+    <th>Nome</th>
+    <th>Ore iniziali</th>
+    <th>Ore residue</th>
+    <th>Elimina</th>
+</tr>
 </thead>
 <tbody></tbody>
 </table>
 
 <button id="add-dip">AGGIUNGI DIPENDENTE</button>
 
+<br><br>
+
 <div id="calendari"></div>
 
-<!-- POPUP FERIE -->
+<!-- POPUP -->
 <div id="popup">
     <h3>Assegna ferie</h3>
     <div id="popup-data"></div>
-    Dipendente:
+
+    <br>
+    Dipendente:<br>
     <select id="popup-dip"></select>
+
+    <br><br>
+    Giorni di ferie:<br>
+    <input id="popup-giorni" type="number" value="1" min="1" style="width:80px;">
+
     <br><br>
     <button id="popup-ok">OK</button>
     <button id="popup-del">ELIMINA</button>
@@ -71,7 +174,8 @@ function salvaFerie() { localStorage.setItem("ferie", JSON.stringify(ferie)); }
 const annoSel = document.getElementById("anno-select");
 for (let a = 2024; a <= 2035; a++) {
     let opt = document.createElement("option");
-    opt.value = a; opt.textContent = a;
+    opt.value = a;
+    opt.textContent = a;
     annoSel.appendChild(opt);
 }
 annoSel.value = new Date().getFullYear();
@@ -105,7 +209,7 @@ function renderDip() {
         };
     });
 
-    // Modifica ore iniziali → aggiorna ore residue
+    // Modifica ore iniziali → reset ore residue
     document.querySelectorAll(".oreI").forEach(inp => {
         inp.oninput = () => {
             const i = inp.dataset.i;
@@ -145,25 +249,27 @@ function generaCalendario() {
     for (let mese = 0; mese < 12; mese++) {
         const giorni = new Date(anno, mese+1, 0).getDate();
 
-        let html = `<h3>${meseNome(mese)} ${anno}</h3><table><tr>`;
-        ["Lu","Ma","Me","Gi","Ve","Sa","Do"].forEach(g => html += `<th>${g}</th>`);
-        html += "</tr><tr>";
+        let box = document.createElement("div");
+        box.className = "mese-box";
+
+        box.innerHTML = `<h3>${meseNome(mese)}</h3><table><tr>
+            <th>Lu</th><th>Ma</th><th>Me</th><th>Gi</th><th>Ve</th><th>Sa</th><th>Do</th>
+        </tr><tr>`;
 
         let firstDay = new Date(anno, mese, 1).getDay();
         if (firstDay === 0) firstDay = 7;
 
-        for (let i = 1; i < firstDay; i++) html += "<td></td>";
+        for (let i = 1; i < firstDay; i++) box.innerHTML += "<td></td>";
 
         for (let g = 1; g <= giorni; g++) {
-            html += `<td class="giorno" data-m="${mese}" data-g="${g}">${g}</td>`;
-            if (new Date(anno, mese, g).getDay() === 0) html += "</tr><tr>";
+            box.innerHTML += `<td class="giorno" data-m="${mese}" data-g="${g}">${g}</td>`;
+            if (new Date(anno, mese, g).getDay() === 0) box.innerHTML += "</tr><tr>";
         }
 
-        html += "</tr></table>";
-        div.innerHTML += html;
+        box.innerHTML += "</tr></table>";
+        div.appendChild(box);
     }
 
-    // Click giorno
     document.querySelectorAll(".giorno").forEach(td => {
         td.onclick = () => apriPopup(td);
     });
@@ -184,6 +290,7 @@ let giornoSelezionato = null;
 
 function apriPopup(td) {
     giornoSelezionato = td;
+
     const anno = parseInt(annoSel.value);
     const mese = td.dataset.m;
     const giorno = td.dataset.g;
@@ -200,6 +307,8 @@ function apriPopup(td) {
         sel.appendChild(opt);
     });
 
+    document.getElementById("popup-giorni").value = 1;
+
     document.getElementById("popup").style.display = "block";
 }
 
@@ -210,18 +319,30 @@ document.getElementById("popup-close").onclick = () => {
 // ASSEGNA FERIE
 document.getElementById("popup-ok").onclick = () => {
     const anno = parseInt(annoSel.value);
-    const mese = giornoSelezionato.dataset.m;
-    const giorno = giornoSelezionato.dataset.g;
-    const dip = document.getElementById("popup-dip").value;
+    let mese = parseInt(giornoSelezionato.dataset.m);
+    let giorno = parseInt(giornoSelezionato.dataset.g);
+
+    const dipIndex = parseInt(document.getElementById("popup-dip").value);
+    const giorniFerie = parseInt(document.getElementById("popup-giorni").value) || 1;
 
     if (!ferie[anno]) ferie[anno] = {};
-    if (!ferie[anno][mese]) ferie[anno][mese] = {};
 
-    ferie[anno][mese][giorno] = dipendenti[dip].nome;
+    for (let i = 0; i < giorniFerie; i++) {
+        const giorniNelMese = new Date(anno, mese+1, 0).getDate();
 
-    // scala ore residue
-    dipendenti[dip].oreResidue -= 8;
-    if (dipendenti[dip].oreResidue < 0) dipendenti[dip].oreResidue = 0;
+        if (!ferie[anno][mese]) ferie[anno][mese] = {};
+        ferie[anno][mese][giorno] = dipendenti[dipIndex].nome;
+
+        giorno++;
+        if (giorno > giorniNelMese) {
+            giorno = 1;
+            mese++;
+            if (mese > 11) break;
+        }
+    }
+
+    dipendenti[dipIndex].oreResidue -= (8 * giorniFerie);
+    if (dipendenti[dipIndex].oreResidue < 0) dipendenti[dipIndex].oreResidue = 0;
 
     salvaDip();
     salvaFerie();
@@ -238,17 +359,29 @@ document.getElementById("popup-del").onclick = () => {
     const giorno = giornoSelezionato.dataset.g;
 
     if (ferie[anno] && ferie[anno][mese] && ferie[anno][mese][giorno]) {
+
+        const nomeDip = ferie[anno][mese][giorno];
+        const dipIndex = dipendenti.findIndex(d => d.nome === nomeDip);
+
+        if (dipIndex !== -1) {
+            dipendenti[dipIndex].oreResidue += 8;
+        }
+
         delete ferie[anno][mese][giorno];
+
+        salvaDip();
         salvaFerie();
+        renderDip();
         generaCalendario();
-        alert("Ferie eliminate.");
+
+        alert("Ferie eliminate e ore residue aggiornate.");
     }
 
     document.getElementById("popup").style.display = "none";
 };
 
 // =========================
-// COLORA FERIE + NOME
+// COLORA FERIE
 // =========================
 
 function ricoloraFerie() {
@@ -265,14 +398,6 @@ function ricoloraFerie() {
         }
     });
 }
-
-// =========================
-// AGGIORNA (NON CAMBIA PIÙ L’ORDINE)
-// =========================
-
-document.getElementById("aggiorna-btn").onclick = () => {
-    alert("Aggiorna ora NON modifica più l’ordine dei dipendenti.");
-};
 
 // =========================
 // INIT
