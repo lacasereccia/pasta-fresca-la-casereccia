@@ -49,6 +49,7 @@
     <button onclick="abilitaModifica()">Modifica</button>
     <button onclick="salvaDati()">Salva</button>
     <button onclick="mostraPopup()">Aggiungi Frigorifero</button>
+    <button onclick="mostraStampa()">Stampa</button>
 </div>
 
 <!-- LISTA FRIGORIFERI -->
@@ -97,8 +98,8 @@
         mesi.forEach((m,i)=> meseSel.innerHTML += `<option value="${i}">${m}</option>`);
 
         let annoCorr = new Date().getFullYear();
-        // estendi gli anni fino al 2040 e includi gli anni precedenti (es. dal 2000)
-        const startYear = 2000;
+        // estendi gli anni dal 2025 fino al 2040
+        const startYear = 2025;
         const endYear = 2040;
         for(let a = startYear; a <= endYear; a++){
             annoSel.innerHTML += `<option value="${a}">${a}</option>`;
@@ -180,6 +181,20 @@
             return f;
         });
 
+        // Rimuovi date esterne all'intervallo 2025-2040 per tenere i dati puliti
+        const MIN_YEAR = 2025;
+        const MAX_YEAR = 2040;
+        lista.forEach(frigo => {
+            if (frigo.temps) {
+                Object.keys(frigo.temps).forEach(k => {
+                    const yr = parseInt(k.split('-')[0], 10);
+                    if (isNaN(yr) || yr < MIN_YEAR || yr > MAX_YEAR) {
+                        delete frigo.temps[k];
+                    }
+                });
+            }
+        });
+
         // Determina se dobbiamo auto-generare temperature per il mese/anno selezionato
         let mese = parseInt(document.getElementById("mese").value, 10);
         let anno = parseInt(document.getElementById("anno").value, 10);
@@ -221,7 +236,7 @@
             localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
         }
 
-        // salva eventuale migrazione
+        // salva eventuale migrazione / pulizia
         localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
 
         let box = document.getElementById("listaFrigo");
@@ -320,6 +335,43 @@
         localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
         alert("Salvato!");
         caricaFrigo();
+    }
+
+    // MOSTRA STAMPA / ANTEPRIMA
+    function mostraStampa() {
+        let sede = document.getElementById("sede").value;
+        let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
+        let mese = parseInt(document.getElementById("mese").value, 10);
+        let anno = parseInt(document.getElementById("anno").value, 10);
+        const ndays = daysInMonth(anno, mese);
+        let monthName = document.getElementById('mese').options[document.getElementById('mese').selectedIndex].text;
+
+        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resoconto ${monthName} ${anno}</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px;font-size:12px}th{background:#f0f0f0} .print-button{margin-bottom:10px} @media print { .print-button{display:none} table{page-break-inside:avoid} }</style></head><body>`;
+        html += `<h2>Resoconto temperature - ${monthName} ${anno} - Sede: ${sede}</h2>`;
+        html += `<button class="print-button" onclick="window.print()">Stampa</button>`;
+        html += `<table><thead><tr><th>Frigorifero</th><th>Tipo</th>`;
+        for (let d=1; d<=ndays; d++){ html += `<th>${d}</th>`}
+        html += `</tr></thead><tbody>`;
+        lista.forEach(frigo => {
+            html += `<tr><td>${frigo.nome}</td><td>${frigo.tipo}</td>`;
+            for (let d=1; d<=ndays; d++){
+                const day = String(d).padStart(2,'0');
+                const month = String(mese+1).padStart(2,'0');
+                const key = `${anno}-${month}-${day}`;
+                const val = frigo.temps && frigo.temps[key] !== undefined ? frigo.temps[key] : '';
+                html += `<td>${val}</td>`;
+            }
+            html += `</tr>`;
+        });
+        html += `</tbody></table></body></html>`;
+
+        const w = window.open('', '_blank');
+        if (!w) {
+            alert('Impossibile aprire la finestra di anteprima. Disabilita il blocco popup nel browser.');
+            return;
+        }
+        w.document.write(html);
+        w.document.close();
     }
 </script>
 
