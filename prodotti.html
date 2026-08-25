@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Prodotti - La Casereccia</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff8dc; padding: 20px; }
+    nav a { margin-right: 10px; text-decoration: none; font-weight: bold; color: #444; }
+    nav a:hover { text-decoration: underline; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f0e68c; }
+    input, select, button { margin: 5px 0; padding: 5px; }
+    .form-box { border: 1px solid #ccc; padding: 10px; background: #fffbe6; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <!-- MENU SEMPLICE IN ALTO -->
+  <nav>
+    <a href="index.html">Home Marotta</a>
+    <a href="senigallia.html">Senigallia</a>
+    <a href="supermercati.html">Supermercati</a>
+    <a href="ristoranti.html">Ristoranti</a>
+    <a href="prodotti.html">Prodotti</a>
+  </nav>
+  <hr>
+
+  <h1>Archivio Prodotti</h1>
+
+  <div class="form-box">
+    <h2>Nuovo prodotto</h2>
+    <label>Nome prodotto:</label><br>
+    <input type="text" id="nomeProdotto"><br>
+
+    <label>Tipo:</label><br>
+    <select id="tipoProdotto">
+      <option value="fresco">Fresco</option>
+      <option value="congelato">Congelato</option>
+    </select><br>
+
+    <label>Data di scadenza:</label><br>
+    <input type="date" id="scadenzaProdotto"><br>
+
+    <button onclick="aggiungiProdotto()">Aggiungi prodotto</button>
+  </div>
+
+  <h2>Elenco prodotti</h2>
+  <table id="tabellaProdotti">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Tipo</th>
+        <th>Scadenza</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Qui verranno inserite le righe -->
+    </tbody>
+  </table>
+
+  <script>
+    const prodotti = [];
+
+    function aggiungiProdotto() {
+      const nome = document.getElementById('nomeProdotto').value.trim();
+      const tipo = document.getElementById('tipoProdotto').value;
+      const scadenza = document.getElementById('scadenzaProdotto').value;
+
+      if (!nome || !scadenza) {
+        alert('Inserisci almeno nome e scadenza.');
+        return;
+      }
+
+      const prodotto = { nome, tipo, scadenza };
+      prodotti.push(prodotto);
+      aggiornaTabella();
+      pulisciForm();
+    }
+
+    function aggiornaTabella() {
+      const tbody = document.querySelector('#tabellaProdotti tbody');
+      tbody.innerHTML = '';
+
+      prodotti.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.nome}</td>
+          <td>${p.tipo}</td>
+          <td>${p.scadenza}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function pulisciForm() {
+      document.getElementById('nomeProdotto').value = '';
+      document.getElementById('tipoProdotto').value = 'fresco';
+      document.getElementById('scadenzaProdotto').value = '';
+    }
+  </script>
+
+</body>
+</html>
