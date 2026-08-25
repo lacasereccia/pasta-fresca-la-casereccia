@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Home Marotta - La Casereccia</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff8dc; padding: 20px; }
+    nav a { margin-right: 10px; text-decoration: none; font-weight: bold; color: #444; }
+    nav a:hover { text-decoration: underline; }
+    .box { background: #fffbe6; padding: 15px; border: 1px solid #ccc; margin-top: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f0e68c; }
+    button { padding: 8px 12px; margin: 5px; }
+  </style>
+</head>
+<body>
+
+  <!-- MENU PRINCIPALE -->
+  <nav>
+    <a href="index.html">Home Marotta</a>
+    <a href="senigallia.html">Senigallia</a>
+    <a href="supermercati.html">Supermercati</a>
+    <a href="ristoranti.html">Ristoranti</a>
+    <a href="prodotti.html">Prodotti</a>
+  </nav>
+  <hr>
+
+  <h1>Home Marotta</h1>
+
+  <!-- ORDINI IN ARRIVO -->
+  <div class="box">
+    <h2>Ordini in arrivo</h2>
+    <p>Qui compaiono gli ordini inviati da Senigallia, Supermercati e Ristoranti.</p>
+
+    <table id="tabellaOrdini">
+      <thead>
+        <tr>
+          <th>Sede</th>
+          <th>Data</th>
+          <th>Dettagli</th>
+          <th>Azioni</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- SCADENZE PRODOTTI -->
+  <div class="box">
+    <h2>Prodotti in scadenza</h2>
+    <p>Qui compariranno i prodotti che stanno per scadere.</p>
+
+    <table id="tabellaScadenze">
+      <thead>
+        <tr>
+          <th>Prodotto</th>
+          <th>Tipo</th>
+          <th>Scadenza</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    /* ------------------------------
+       CARICA ORDINI INVIATI DAI PUNTI VENDITA
+    ------------------------------ */
+
+    function caricaOrdini() {
+      const ordini = JSON.parse(localStorage.getItem("ordiniMarotta") || "[]");
+      const tbody = document.querySelector("#tabellaOrdini tbody");
+      tbody.innerHTML = "";
+
+      ordini.forEach((ordine, index) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${ordine.sede}</td>
+          <td>${ordine.data}</td>
+          <td>${ordine.righe.map(r => r.prodotto + " (" + r.quantita + ")").join("<br>")}</td>
+          <td>
+            <button onclick="segnaFatto(${index})">Fatto</button>
+            <button onclick="segnaRifiutato(${index})">Rifiuta</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function segnaFatto(index) {
+      let ordini = JSON.parse(localStorage.getItem("ordiniMarotta") || "[]");
+      const ordine = ordini[index];
+
+      alert("Ordine di " + ordine.sede + " segnato come FATTO.");
+
+      ordini.splice(index, 1);
+      localStorage.setItem("ordiniMarotta", JSON.stringify(ordini));
+
+      caricaOrdini();
+    }
+
+    function segnaRifiutato(index) {
+      let ordini = JSON.parse(localStorage.getItem("ordiniMarotta") || "[]");
+      const ordine = ordini[index];
+
+      alert("Ordine di " + ordine.sede + " RIFIUTATO.");
+
+      ordini.splice(index, 1);
+      localStorage.setItem("ordiniMarotta", JSON.stringify(ordini));
+
+      caricaOrdini();
+    }
+
+    /* ------------------------------
+       CONTROLLO SCADENZE PRODOTTI
+    ------------------------------ */
+
+    function controllaScadenze() {
+      const prodotti = JSON.parse(localStorage.getItem("prodottiGlobali") || "[]");
+      const tbody = document.querySelector("#tabellaScadenze tbody");
+      tbody.innerHTML = "";
+
+      const oggi = new Date();
+
+      prodotti.forEach(p => {
+        const dataScadenza = new Date(p.scadenza);
+
+        if (dataScadenza <= oggi) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${p.nome}</td>
+            <td>${p.tipo}</td>
+            <td>${p.scadenza}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+
+    /* ------------------------------
+       AVVIO
+    ------------------------------ */
+
+    caricaOrdini();
+    controllaScadenze();
+  </script>
+
+</body>
+</html>
