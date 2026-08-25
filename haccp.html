@@ -7,9 +7,16 @@
     <style>
         body { font-family: Arial; background: #fff7c2; padding: 20px; }
         .menu { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { padding: 10px 20px; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
         select { padding: 8px; font-size: 16px; }
         .frigo-box { background: white; padding: 10px; margin: 10px 0; border-radius: 8px; }
+        .popup {
+            background: white; padding: 20px; border-radius: 10px;
+            width: 300px; position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .popup input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
+        .popup label { display: block; margin: 5px 0; }
     </style>
 </head>
 
@@ -37,12 +44,26 @@
 <h2>Frigoriferi</h2>
 <div id="listaFrigo"></div>
 
-<button onclick="aggiungiFrigo()">Aggiungi Frigorifero</button>
+<button onclick="mostraPopup()">Aggiungi Frigorifero</button>
+
+<!-- POPUP INSERIMENTO -->
+<div id="popup" class="popup" style="display:none;">
+    <h3>Nuovo Frigorifero</h3>
+
+    <label>Nome:</label>
+    <input type="text" id="nomeFrigo">
+
+    <label><input type="radio" name="tipo" value="Frigorifero"> Frigorifero</label>
+    <label><input type="radio" name="tipo" value="Congelatore"> Congelatore</label>
+
+    <button onclick="creaFrigo()">Salva</button>
+    <button onclick="chiudiPopup()">Chiudi</button>
+</div>
 
 <script>
-    // GENERA TEMPERATURA CASUALE
-    function tempCasuale(nome) {
-        if (nome.toLowerCase().includes("congelatore")) {
+    // TEMPERATURA CASUALE
+    function tempCasuale(tipo) {
+        if (tipo === "Congelatore") {
             return (Math.floor(Math.random() * 4) - 18); // -15 a -18
         } else {
             return Math.floor(Math.random() * 5); // 0 a 4
@@ -65,10 +86,52 @@
         caricaFrigo();
     };
 
+    // MOSTRA POPUP
+    function mostraPopup() {
+        document.getElementById("popup").style.display = "block";
+    }
+
+    // CHIUDI POPUP
+    function chiudiPopup() {
+        document.getElementById("popup").style.display = "none";
+    }
+
+    // CREA FRIGO
+    function creaFrigo() {
+        let nome = document.getElementById("nomeFrigo").value.trim();
+        let tipo = document.querySelector("input[name='tipo']:checked");
+
+        if (!nome) {
+            alert("Inserisci un nome.");
+            return;
+        }
+
+        if (!tipo) {
+            alert("Seleziona Frigorifero o Congelatore.");
+            return;
+        }
+
+        let tipoFinale = tipo.value;
+
+        let sede = document.getElementById("sede").value;
+        let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
+
+        lista.push({
+            nome: nome,
+            tipo: tipoFinale,
+            temp: tempCasuale(tipoFinale)
+        });
+
+        localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
+
+        chiudiPopup();
+        caricaFrigo();
+    }
+
     // CARICA FRIGORIFERI
     function caricaFrigo() {
         let sede = document.getElementById("sede").value;
-        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+        let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
 
         let box = document.getElementById("listaFrigo");
         box.innerHTML = "";
@@ -76,9 +139,9 @@
         lista.forEach((frigo, index) => {
             let html = `
                 <div class="frigo-box">
-                    <strong>${frigo.nome}</strong>
+                    <strong>${frigo.nome}</strong> (${frigo.tipo})
                     <br>
-                    Temperatura oggi: 
+                    Temperatura oggi:
                     <input type="number" id="t${index}" value="${frigo.temp}" disabled>
                     <button onclick="eliminaFrigo(${index})">Elimina</button>
                 </div>
@@ -87,30 +150,13 @@
         });
     }
 
-    // AGGIUNGI FRIGO
-    function aggiungiFrigo() {
-        let nome = prompt("Nome frigorifero o congelatore:");
-        if (!nome) return;
-
-        let sede = document.getElementById("sede").value;
-        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
-
-        lista.push({
-            nome: nome,
-            temp: tempCasuale(nome)
-        });
-
-        localStorage.setItem("haccp_"+sede, JSON.stringify(lista));
-        caricaFrigo();
-    }
-
     // ELIMINA FRIGO
     function eliminaFrigo(i) {
         let sede = document.getElementById("sede").value;
-        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+        let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
 
         lista.splice(i,1);
-        localStorage.setItem("haccp_"+sede, JSON.stringify(lista));
+        localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
         caricaFrigo();
     }
 
@@ -122,13 +168,13 @@
     // SALVA MODIFICHE
     function salvaDati() {
         let sede = document.getElementById("sede").value;
-        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+        let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
 
         lista.forEach((frigo, index) => {
             frigo.temp = document.getElementById("t"+index).value;
         });
 
-        localStorage.setItem("haccp_"+sede, JSON.stringify(lista));
+        localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
         alert("Salvato!");
         caricaFrigo();
     }
