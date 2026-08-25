@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>HACCP Temperature</title>
+
+    <style>
+        body { font-family: Arial; background: #fff7c2; padding: 20px; }
+        .menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { padding: 10px 20px; font-size: 16px; }
+        select { padding: 8px; font-size: 16px; }
+        .frigo-box { background: white; padding: 10px; margin: 10px 0; border-radius: 8px; }
+    </style>
+</head>
+
+<body>
+
+<h1>HACCP – Temperature</h1>
+
+<!-- SCELTA RAPIDA SEDE -->
+<div class="menu">
+    <select id="sede">
+        <option value="Senigallia">Senigallia</option>
+        <option value="Marotta">Marotta</option>
+        <option value="Furgone1">Furgone 1</option>
+        <option value="Furgone2">Furgone 2</option>
+    </select>
+
+    <select id="mese"></select>
+    <select id="anno"></select>
+
+    <button onclick="abilitaModifica()">Modifica</button>
+    <button onclick="salvaDati()">Salva</button>
+</div>
+
+<!-- LISTA FRIGORIFERI -->
+<h2>Frigoriferi</h2>
+<div id="listaFrigo"></div>
+
+<button onclick="aggiungiFrigo()">Aggiungi Frigorifero</button>
+
+<script>
+    // GENERA TEMPERATURA CASUALE
+    function tempCasuale(nome) {
+        if (nome.toLowerCase().includes("congelatore")) {
+            return (Math.floor(Math.random() * 4) - 18); // -15 a -18
+        } else {
+            return Math.floor(Math.random() * 5); // 0 a 4
+        }
+    }
+
+    // POPOLA MESE E ANNO
+    window.onload = function() {
+        let meseSel = document.getElementById("mese");
+        let annoSel = document.getElementById("anno");
+
+        const mesi = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+        mesi.forEach((m,i)=> meseSel.innerHTML += `<option value="${i}">${m}</option>`);
+
+        let annoCorr = new Date().getFullYear();
+        for(let a = annoCorr - 3; a <= annoCorr + 1; a++){
+            annoSel.innerHTML += `<option value="${a}">${a}</option>`;
+        }
+
+        caricaFrigo();
+    };
+
+    // CARICA FRIGORIFERI
+    function caricaFrigo() {
+        let sede = document.getElementById("sede").value;
+        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+
+        let box = document.getElementById("listaFrigo");
+        box.innerHTML = "";
+
+        lista.forEach((frigo, index) => {
+            let html = `
+                <div class="frigo-box">
+                    <strong>${frigo.nome}</strong>
+                    <br>
+                    Temperatura oggi: 
+                    <input type="number" id="t${index}" value="${frigo.temp}" disabled>
+                    <button onclick="eliminaFrigo(${index})">Elimina</button>
+                </div>
+            `;
+            box.innerHTML += html;
+        });
+    }
+
+    // AGGIUNGI FRIGO
+    function aggiungiFrigo() {
+        let nome = prompt("Nome frigorifero o congelatore:");
+        if (!nome) return;
+
+        let sede = document.getElementById("sede").value;
+        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+
+        lista.push({
+            nome: nome,
+            temp: tempCasuale(nome)
+        });
+
+        localStorage.setItem("haccp_"+sede, JSON.stringify(lista));
+        caricaFrigo();
+    }
+
+    // ELIMINA FRIGO
+    function eliminaFrigo(i) {
+        let sede = document.getElementById("sede").value;
+        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+
+        lista.splice(i,1);
+        localStorage.setItem("haccp_"+sede, JSON.stringify(lista));
+        caricaFrigo();
+    }
+
+    // ABILITA MODIFICA
+    function abilitaModifica() {
+        document.querySelectorAll("input[type='number']").forEach(i => i.disabled = false);
+    }
+
+    // SALVA MODIFICHE
+    function salvaDati() {
+        let sede = document.getElementById("sede").value;
+        let lista = JSON.parse(localStorage.getItem("haccp_"+sede)) || [];
+
+        lista.forEach((frigo, index) => {
+            frigo.temp = document.getElementById("t"+index).value;
+        });
+
+        localStorage.setItem("haccp_"+sede, JSON.stringify(lista));
+        alert("Salvato!");
+        caricaFrigo();
+    }
+</script>
+
+</body>
+</html>
