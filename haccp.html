@@ -6,9 +6,9 @@
 
     <style>
         body { font-family: Arial; background: #fff7c2; padding: 20px; }
-        .menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .menu { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        select, input[type="radio"] { padding: 8px; font-size: 16px; }
+        select { padding: 8px; font-size: 16px; }
         .frigo-box { background: white; padding: 10px; margin: 10px 0; border-radius: 8px; }
         .popup {
             background: white; padding: 20px; border-radius: 10px;
@@ -16,7 +16,6 @@
             transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(0,0,0,0.3);
         }
         .popup input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
-        .popup label { display: block; margin: 5px 0; }
     </style>
 </head>
 
@@ -41,9 +40,11 @@
     <!-- ANNO -->
     <select id="anno"></select>
 
-    <!-- SCELTA RAPIDA TIPO -->
-    <label><input type="radio" name="tipoRapido" value="Frigorifero"> Frigorifero</label>
-    <label><input type="radio" name="tipoRapido" value="Congelatore"> Congelatore</label>
+    <!-- SCELTA RAPIDA TIPO (VISIBILE!) -->
+    <div>
+        <label><input type="radio" name="tipoRapido" value="Frigorifero"> Frigorifero</label>
+        <label><input type="radio" name="tipoRapido" value="Congelatore"> Congelatore</label>
+    </div>
 
     <!-- BOTTONI -->
     <button onclick="abilitaModifica()">Modifica</button>
