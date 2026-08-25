@@ -346,7 +346,7 @@
         const ndays = daysInMonth(anno, mese);
         let monthName = document.getElementById('mese').options[document.getElementById('mese').selectedIndex].text;
 
-        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resoconto ${monthName} ${anno}</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px;font-size:12px}th{background:#f0f0f0} .print-button{margin-bottom:10px} @media print { .print-button{display:none} table{page-break-inside:avoid} }</style></head><body>`;
+        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resoconto ${monthName} ${anno}</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px;text-align:center}.print-button{margin-bottom:20px;padding:10px 20px;font-size:16px;cursor:pointer}@media print{.print-button{display:none}}</style></head><body>`;
         html += `<h2>Resoconto temperature - ${monthName} ${anno} - Sede: ${sede}</h2>`;
         html += `<button class="print-button" onclick="window.print()">Stampa</button>`;
         html += `<table><thead><tr><th>Frigorifero</th><th>Tipo</th>`;
