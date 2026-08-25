@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Senigallia - La Casereccia</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff8dc; padding: 20px; }
+    nav a { margin-right: 10px; text-decoration: none; font-weight: bold; color: #444; }
+    nav a:hover { text-decoration: underline; }
+    .box { background: #fffbe6; padding: 15px; border: 1px solid #ccc; margin-top: 20px; }
+    button { padding: 8px 12px; margin-top: 10px; }
+    input, select { padding: 5px; margin: 5px 0; }
+    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f0e68c; }
+  </style>
+</head>
+<body>
+
+  <!-- MENU PRINCIPALE -->
+  <nav>
+    <a href="index.html">Home Marotta</a>
+    <a href="senigallia.html">Senigallia</a>
+    <a href="supermercati.html">Supermercati</a>
+    <a href="ristoranti.html">Ristoranti</a>
+    <a href="prodotti.html">Prodotti</a>
+  </nav>
+  <hr>
+
+  <h1>Senigallia</h1>
+
+  <!-- HOME SENIGALLIA -->
+  <div class="box">
+    <h2>Home Senigallia</h2>
+    <p>Qui compariranno gli ordini inviati a Marotta e lo stato del magazzino locale.</p>
+  </div>
+
+  <!-- ORDINI -->
+  <div class="box">
+    <h2>Ordini</h2>
+
+    <label>Prodotto:</label><br>
+    <input type="text" id="prodottoInput" placeholder="Scrivi il prodotto"><br>
+
+    <label>Oppure scegli dal menu:</label><br>
+    <select id="prodottoSelect">
+      <option value="">-- Seleziona prodotto --</option>
+    </select><br>
+
+    <label>Quantità / Peso:</label><br>
+    <input type="text" id="quantitaInput" placeholder="Es. 2kg, 5 pezzi"><br>
+
+    <button onclick="aggiungiRigaOrdine()">Aggiungi riga all'ordine</button>
+
+    <h3>Ordine in preparazione</h3>
+    <table id="tabellaOrdine">
+      <thead>
+        <tr>
+          <th>Prodotto</th>
+          <th>Quantità</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button onclick="inviaOrdine()">Invia ordine a Marotta</button>
+  </div>
+
+  <!-- MAGAZZINO -->
+  <div class="box">
+    <h2>Magazzino Senigallia</h2>
+    <p>Qui verranno mostrati i prodotti presenti nel magazzino di Senigallia.</p>
+  </div>
+
+  <!-- RESO -->
+  <div class="box">
+    <h2>Reso</h2>
+    <p>Qui potrai registrare ciò che viene buttato o utilizzato.</p>
+  </div>
+
+  <script>
+    /* ------------------------------
+       CARICA I PRODOTTI DA prodottI.html
+       (per ora simuliamo con memoria locale)
+    ------------------------------ */
+
+    let prodottiGlobali = JSON.parse(localStorage.getItem("prodottiGlobali") || "[]");
+
+    // Popola il menu a tendina
+    const select = document.getElementById("prodottoSelect");
+    prodottiGlobali.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.nome;
+      opt.textContent = p.nome + " (" + p.tipo + ")";
+      select.appendChild(opt);
+    });
+
+    /* ------------------------------
+       ORDINI
+    ------------------------------ */
+
+    const ordine = [];
+
+    function aggiungiRigaOrdine() {
+      const prodottoTesto = document.getElementById("prodottoInput").value.trim();
+      const prodottoSelezionato = document.getElementById("prodottoSelect").value;
+      const quantita = document.getElementById("quantitaInput").value.trim();
+
+      if (!prodottoTesto && !prodottoSelezionato) {
+        alert("Inserisci o seleziona un prodotto.");
+        return;
+      }
+      if (!quantita) {
+        alert("Inserisci la quantità.");
+        return;
+      }
+
+      const prodottoFinale = prodottoTesto || prodottoSelezionato;
+
+      ordine.push({ prodotto: prodottoFinale, quantita });
+
+      aggiornaTabellaOrdine();
+      pulisciCampiOrdine();
+    }
+
+    function aggiornaTabellaOrdine() {
+      const tbody = document.querySelector("#tabellaOrdine tbody");
+      tbody.innerHTML = "";
+
+      ordine.forEach(riga => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${riga.prodotto}</td>
+          <td>${riga.quantita}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function pulisciCampiOrdine() {
+      document.getElementById("prodottoInput").value = "";
+      document.getElementById("prodottoSelect").value = "";
+      document.getElementById("quantitaInput").value = "";
+    }
+
+    function inviaOrdine() {
+      if (ordine.length === 0) {
+        alert("L'ordine è vuoto.");
+        return;
+      }
+
+      // Salviamo l'ordine per Marotta
+      let ordiniMarotta = JSON.parse(localStorage.getItem("ordiniMarotta") || "[]");
+      ordiniMarotta.push({
+        sede: "Senigallia",
+        data: new Date().toLocaleString(),
+        righe: ordine
+      });
+      localStorage.setItem("ordiniMarotta", JSON.stringify(ordiniMarotta));
+
+      alert("Ordine inviato a Marotta!");
+
+      // Reset ordine
+      ordine.length = 0;
+      aggiornaTabellaOrdine();
+    }
+  </script>
+
+</body>
+</html>
