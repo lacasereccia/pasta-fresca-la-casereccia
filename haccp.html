@@ -6,9 +6,9 @@
 
     <style>
         body { font-family: Arial; background: #fff7c2; padding: 20px; }
-        .menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        select { padding: 8px; font-size: 16px; }
+        select, input[type="radio"] { padding: 8px; font-size: 16px; }
         .frigo-box { background: white; padding: 10px; margin: 10px 0; border-radius: 8px; }
         .popup {
             background: white; padding: 20px; border-radius: 10px;
@@ -24,8 +24,10 @@
 
 <h1>HACCP – Temperature</h1>
 
-<!-- SCELTA RAPIDA SEDE -->
+<!-- MENU PRINCIPALE -->
 <div class="menu">
+
+    <!-- SEDE -->
     <select id="sede">
         <option value="Senigallia">Senigallia</option>
         <option value="Marotta">Marotta</option>
@@ -33,9 +35,17 @@
         <option value="Furgone2">Furgone 2</option>
     </select>
 
+    <!-- MESE -->
     <select id="mese"></select>
+
+    <!-- ANNO -->
     <select id="anno"></select>
 
+    <!-- SCELTA RAPIDA TIPO -->
+    <label><input type="radio" name="tipoRapido" value="Frigorifero"> Frigorifero</label>
+    <label><input type="radio" name="tipoRapido" value="Congelatore"> Congelatore</label>
+
+    <!-- BOTTONI -->
     <button onclick="abilitaModifica()">Modifica</button>
     <button onclick="salvaDati()">Salva</button>
 </div>
@@ -52,9 +62,6 @@
 
     <label>Nome:</label>
     <input type="text" id="nomeFrigo">
-
-    <label><input type="radio" name="tipo" value="Frigorifero"> Frigorifero</label>
-    <label><input type="radio" name="tipo" value="Congelatore"> Congelatore</label>
 
     <button onclick="creaFrigo()">Salva</button>
     <button onclick="chiudiPopup()">Chiudi</button>
@@ -99,7 +106,7 @@
     // CREA FRIGO
     function creaFrigo() {
         let nome = document.getElementById("nomeFrigo").value.trim();
-        let tipo = document.querySelector("input[name='tipo']:checked");
+        let tipo = document.querySelector("input[name='tipoRapido']:checked");
 
         if (!nome) {
             alert("Inserisci un nome.");
@@ -107,7 +114,7 @@
         }
 
         if (!tipo) {
-            alert("Seleziona Frigorifero o Congelatore.");
+            alert("Seleziona Frigorifero o Congelatore dal menu.");
             return;
         }
 
