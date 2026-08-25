@@ -97,12 +97,19 @@
         mesi.forEach((m,i)=> meseSel.innerHTML += `<option value="${i}">${m}</option>`);
 
         let annoCorr = new Date().getFullYear();
-        for(let a = annoCorr - 3; a <= annoCorr + 1; a++){
+        // estendi gli anni fino al 2040 e includi gli anni precedenti (es. dal 2000)
+        const startYear = 2000;
+        const endYear = 2040;
+        for(let a = startYear; a <= endYear; a++){
             annoSel.innerHTML += `<option value="${a}">${a}</option>`;
         }
 
         // imposta mese e anno correnti
         meseSel.value = new Date().getMonth();
+        // se l'anno corrente è oltre endYear, aggiungilo dinamicamente
+        if (annoCorr > endYear) {
+            annoSel.innerHTML += `<option value="${annoCorr}">${annoCorr}</option>`;
+        }
         annoSel.value = new Date().getFullYear();
 
         caricaFrigo();
@@ -178,14 +185,24 @@
         let anno = parseInt(document.getElementById("anno").value, 10);
 
         const now = new Date();
-        const isCurrentMonthAndYear = (anno === now.getFullYear() && mese === now.getMonth());
-        const cutoffDay = isCurrentMonthAndYear ? now.getDate() : 0; // 0 = non generare
+        const selectedFirst = new Date(anno, mese, 1);
+        let generateUpToDay = 0;
 
-        // se dobbiamo generare, per ogni frigo generiamo solo i giorni mancanti fino a cutoffDay
-        if (cutoffDay > 0) {
+        if (selectedFirst.getFullYear() < now.getFullYear() || (selectedFirst.getFullYear() === now.getFullYear() && selectedFirst.getMonth() < now.getMonth())) {
+            // mese/anno selezionato nel passato -> genera tutti i giorni del mese
+            generateUpToDay = daysInMonth(anno, mese);
+        } else if (selectedFirst.getFullYear() === now.getFullYear() && selectedFirst.getMonth() === now.getMonth()) {
+            // mese/anno corrente -> genera fino al giorno odierno
+            generateUpToDay = now.getDate();
+        } else {
+            // futuro -> non generare
+            generateUpToDay = 0;
+        }
+
+        // se dobbiamo generare, per ogni frigo generiamo solo i giorni mancanti fino a generateUpToDay
+        if (generateUpToDay > 0) {
             const ndays = daysInMonth(anno, mese);
-            // limitiamo cutoffDay al numero di giorni del mese
-            const maxDay = Math.min(cutoffDay, ndays);
+            const maxDay = Math.min(generateUpToDay, ndays);
 
             lista.forEach(frigo => {
                 if (!frigo.temps) frigo.temps = {};
