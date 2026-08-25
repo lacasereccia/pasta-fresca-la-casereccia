@@ -16,6 +16,11 @@
             transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(0,0,0,0.3);
         }
         .popup input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
+        .days-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(80px,1fr)); gap: 6px; margin-top:10px; }
+        .day-cell { background:#f7f7f7; padding:6px; border-radius:6px; font-size:13px; }
+        .day-cell input { width:100%; }
+        .frigo-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+        .small { font-size:12px; color:#666; }
     </style>
 </head>
 
@@ -27,7 +32,7 @@
 <div class="menu">
 
     <!-- SEDE -->
-    <select id="sede">
+    <select id="sede" onchange="caricaFrigo()">
         <option value="Senigallia">Senigallia</option>
         <option value="Marotta">Marotta</option>
         <option value="Furgone1">Furgone 1</option>
@@ -35,10 +40,10 @@
     </select>
 
     <!-- MESE -->
-    <select id="mese"></select>
+    <select id="mese" onchange="caricaFrigo()"></select>
 
     <!-- ANNO -->
-    <select id="anno"></select>
+    <select id="anno" onchange="caricaFrigo()"></select>
 
     <!-- BOTTONI -->
     <button onclick="abilitaModifica()">Modifica</button>
@@ -71,10 +76,14 @@
     // TEMPERATURA CASUALE
     function tempCasuale(tipo) {
         if (tipo === "Congelatore") {
-            return (Math.floor(Math.random() * 4) - 18); // -15 a -18
+            return (Math.floor(Math.random() * 4) - 18); // -18 a -15
         } else {
             return Math.floor(Math.random() * 5); // 0 a 4
         }
+    }
+
+    function daysInMonth(year, monthIndex) {
+        return new Date(year, monthIndex + 1, 0).getDate();
     }
 
     // POPOLA MESE E ANNO
@@ -89,6 +98,10 @@
         for(let a = annoCorr - 3; a <= annoCorr + 1; a++){
             annoSel.innerHTML += `<option value="${a}">${a}</option>`;
         }
+
+        // imposta mese e anno correnti
+        meseSel.value = new Date().getMonth();
+        annoSel.value = new Date().getFullYear();
 
         caricaFrigo();
     };
@@ -123,10 +136,11 @@
         let sede = document.getElementById("sede").value;
         let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
 
+        // nuovo oggetto con storico temps vuoto
         lista.push({
             nome: nome,
             tipo: tipoFinale,
-            temp: tempCasuale(tipoFinale)
+            temps: {} // keyed by YYYY-MM-DD
         });
 
         localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
@@ -140,20 +154,73 @@
         let sede = document.getElementById("sede").value;
         let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
 
+        // migrazione: se vecchio formato con 'temp', spostalo in temps con data di oggi
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2,'0');
+        const dd = String(today.getDate()).padStart(2,'0');
+        const todayKey = `${yyyy}-${mm}-${dd}`;
+
+        lista = lista.map(f => {
+            if (f.temp !== undefined && !f.temps) {
+                f.temps = {};
+                f.temps[todayKey] = f.temp;
+                delete f.temp;
+            }
+            if (!f.temps) f.temps = {};
+            return f;
+        });
+
+        // salva eventuale migrazione
+        localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
+
         let box = document.getElementById("listaFrigo");
         box.innerHTML = "";
 
+        let mese = parseInt(document.getElementById("mese").value, 10);
+        let anno = parseInt(document.getElementById("anno").value, 10);
+        const ndays = daysInMonth(anno, mese);
+
         lista.forEach((frigo, index) => {
+            // mostra temperatura odierna se presente
+            const todayStr = `${String(anno)}-${String(mese+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+
             let html = `
                 <div class="frigo-box">
-                    <strong>${frigo.nome}</strong> (${frigo.tipo})
-                    <br>
-                    Temperatura oggi:
-                    <input type="number" id="t${index}" value="${frigo.temp}" disabled>
-                    <button onclick="eliminaFrigo(${index})">Elimina</button>
+                    <div class="frigo-header">
+                        <div>
+                            <strong>${frigo.nome}</strong> (${frigo.tipo})
+                            <div class="small">Registrazioni per ${document.getElementById('mese').options[document.getElementById('mese').selectedIndex].text} ${anno}</div>
+                        </div>
+                        <div>
+                            <button onclick="eliminaFrigo(${index})">Elimina</button>
+                        </div>
+                    </div>
+
+                    <!-- GRID GIORNI -->
+                    <div class="days-grid" id="grid_${index}">
+                    </div>
                 </div>
             `;
+
             box.innerHTML += html;
+
+            // riempi la griglia dei giorni per questo frigo
+            let grid = document.getElementById(`grid_${index}`);
+            for (let d = 1; d <= ndays; d++) {
+                const day = String(d).padStart(2,'0');
+                const month = String(mese+1).padStart(2,'0');
+                const key = `${anno}-${month}-${day}`;
+                const val = frigo.temps && frigo.temps[key] !== undefined ? frigo.temps[key] : "";
+
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                cell.innerHTML = `
+                    <div class="small">${day}/${month}</div>
+                    <input type="number" step="0.1" id="t_${index}_${key}" value="${val}" disabled title="Temperatura per ${key}">
+                `;
+                grid.appendChild(cell);
+            }
         });
     }
 
@@ -161,6 +228,8 @@
     function eliminaFrigo(i) {
         let sede = document.getElementById("sede").value;
         let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
+
+        if (!confirm('Eliminare il frigorifero "' + lista[i].nome + '"?')) return;
 
         lista.splice(i,1);
         localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
@@ -177,8 +246,27 @@
         let sede = document.getElementById("sede").value;
         let lista = JSON.parse(localStorage.getItem("haccp_" + sede)) || [];
 
+        let mese = parseInt(document.getElementById("mese").value, 10);
+        let anno = parseInt(document.getElementById("anno").value, 10);
+        const ndays = daysInMonth(anno, mese);
+
         lista.forEach((frigo, index) => {
-            frigo.temp = document.getElementById("t"+index).value;
+            if (!frigo.temps) frigo.temps = {};
+            for (let d = 1; d <= ndays; d++) {
+                const day = String(d).padStart(2,'0');
+                const month = String(mese+1).padStart(2,'0');
+                const key = `${anno}-${month}-${day}`;
+                const input = document.getElementById(`t_${index}_${key}`);
+                if (input) {
+                    const v = input.value;
+                    if (v === '') {
+                        // non sovrascrivere se vuoto: cancella la chiave per chiarezza
+                        delete frigo.temps[key];
+                    } else {
+                        frigo.temps[key] = parseFloat(v);
+                    }
+                }
+            }
         });
 
         localStorage.setItem("haccp_" + sede, JSON.stringify(lista));
